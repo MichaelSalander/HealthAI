@@ -1,0 +1,29 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+    }
+  },
+  "pages": [
+    { "path": "pages/home/index", "style": { "navigationBarTitleText": "首页" } },
+    { "path": "pages/health/index", "style": { "navigationBarTitleText": "我的健康" } },
+    { "path": "pages/health/manual", "style": { "navigationBarTitleText": "手动记录" } },
+    { "path": "pages/health/profile", "style": { "navigationBarTitleText": "健康档案" } },
+    { "path": "pages/report/index", "style": { "navigationBarTitleText": "体检报告" } },
+    { "path": "pages/result/index", "style": { "navigationBarTitleText": "健康结果" } },
+    { "path": "pages/consultants/index", "style": { "navigationBarTitleText": "找健管师" } },
+    { "path": "pages/service/index", "style": { "navigationBarTitleText": "服务" } },
+    { "path": "pages/profile/index", "style": { "navigationBarTitleText": "我的" } }
+    ,{ "path": "pages/consultants/detail", "style": { "navigationBarTitleText": "健管师详情" } }
+    ,{ "path": "pages/plans/trial", "style": { "navigationBarTitleText": "7天体验" } }
+    ,{ "path": "pages/plans/formal", "style": { "navigationBarTitleText": "正式方案" } }
+    ,{ "path": "pages/services/addons", "style": { "navigationBarTitleText": "增值服务" } }
+    ,{ "path": "pages/order/confirm", "style": { "navigationBarTitleText": "订单确认" } }
+    ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "1V1咨询" } }
+    ,{ "path": "pages/trends/index", "style": { "navigationBarTitleText": "历史趋势" } }
+    ,{ "path": "pages/records/index", "style": { "navigationBarTitleText": "服务记录" } }
+    ,{ "path": "pages/orders/index", "style": { "navigationBarTitleText": "我的订单" } }
+  ],
+  "globalStyle": { "navigationBarTextStyle": "black", "navigationBarTitleText": "AI智能健康管理", "navigationBarBackgroundColor": "#ffffff", "backgroundColor": "#f7fbfa" }
+}

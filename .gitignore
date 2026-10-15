@@ -1,0 +1,6 @@
+node_modules/
+.npm-cache/
+.pnpm-store/
+dist/
+server/mock-db.json
+.DS_Store

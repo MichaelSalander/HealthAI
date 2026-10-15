@@ -1,0 +1,10 @@
+{
+  "name": "AI智能健康管理平台",
+  "appid": "__UNI__HEALTHAI",
+  "description": "AI智能健康管理平台 C端 Mock Prototype",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "vueVersion": "3",
+  "transformPx": false,
+  "h5": { "title": "AI智能健康管理平台" }
+}

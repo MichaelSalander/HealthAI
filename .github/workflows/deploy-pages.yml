@@ -43,8 +43,13 @@ jobs:
           PAGES_BASE_PATH: /${{ github.event.repository.name }}/
         run: pnpm run build:h5
 
-      - name: Include static prototype
-        run: cp -R html-prototype dist/prototype
+        - name: Prepare GitHub Pages site
+          run: |
+            rm -rf site
+            mkdir -p site
+            cp -R dist/build/h5/. site/
+            cp -R html-prototype site/prototype
+            sed -i "s#\(href\|src\)=\"/assets/#\1=\"/${{ github.event.repository.name }}/assets/#g" site/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -52,7 +57,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+            path: site
 
       - name: Deploy to GitHub Pages
         id: deployment

@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  entities: 3.0.1
   vue: 3.5.43
   '@vue/compiler-core': 3.5.43
   '@vue/compiler-dom': 3.5.43
@@ -766,8 +765,8 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
-  entities@3.0.1:
-    resolution: {integrity: sha512-WiyBqoomrwMdFG1e0kqvASYfnlb0lp8M5o5Fw2OFq1hNZxxcNk8Ik0Xm7LxzBhuidnZB/UtBqVCgUz3kBOP51Q==}
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
   es-define-property@1.0.1:
@@ -1892,7 +1891,7 @@ snapshots:
       chokidar: 3.6.0
       compare-versions: 3.6.0
       debug: 4.3.7(supports-color@7.2.0)
-      entities: 3.0.1
+      entities: 7.0.1
       es-module-lexer: 1.5.4
       esbuild: 0.20.2
       estree-walker: 2.0.2
@@ -2284,7 +2283,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.29.9
       '@vue/shared': 3.5.43
-      entities: 3.0.1
+      entities: 7.0.1
       estree-walker: 2.0.2
       source-map-js: 1.2.2
 
@@ -2591,7 +2590,7 @@ snapshots:
 
   encodeurl@2.0.0: {}
 
-  entities@3.0.1: {}
+  entities@7.0.1: {}
 
   es-define-property@1.0.1: {}
 

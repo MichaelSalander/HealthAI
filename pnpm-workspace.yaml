@@ -5,7 +5,6 @@ allowBuilds:
   core-js-pure: true
   esbuild: true
 overrides:
-  entities: 3.0.1
   vue: 3.5.43
   '@vue/compiler-core': 3.5.43
   '@vue/compiler-dom': 3.5.43

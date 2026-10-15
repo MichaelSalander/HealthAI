@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'; import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'; import { commerceRepository } from '../../services/mock/repositories'; import type { ServicePlan } from '../../types/domain'
-const uni = (globalThis as any).uni
+import { ref } from 'vue'; import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'; import { commerceRepository } from '../../services/mock/repositories'; import type { ServicePlan } from '../../types/domain'; import { uniApi as uni } from '../../services/platform/uni'
 const plans = ref<ServicePlan[]>([]); commerceRepository.listPlans().then(x => { plans.value = x.filter(p => p.cycle === '月') }); const choose = (plan: ServicePlan) => uni.navigateTo({ url: `/pages/order/confirm?planId=${plan.id}` })
 </script>
 <template><view class="page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">正式方案</text><text>♧</text></view><view class="tabs"><text class="active">初级管理</text><text>高级管理</text><text>慢病管理</text></view><AppCard v-for="plan in plans" :key="plan.id" class="plan-card"><text class="plan-name">{{ plan.name }}</text><text class="price">¥{{ plan.priceFen / 100 }}<small>/月</small></text><text class="muted">{{ plan.description }}</text><PrimaryButton label="立即购买" @tap="choose(plan)" /></AppCard></view></template>

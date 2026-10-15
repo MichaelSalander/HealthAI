@@ -4,10 +4,10 @@ import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
 import { aiRepository, healthRepository } from '../../services/mock/repositories'
+import { uniApi as uni } from '../../services/platform/uni'
 import type { AIHealthReport, Observation } from '../../types/domain'
 const observations = ref<Observation[]>([])
 const report = ref<AIHealthReport | null>(null)
-const uni = (globalThis as any).uni
 onMounted(async () => { observations.value = await healthRepository.getObservations(); report.value = await aiRepository.generateReport(observations.value) })
 const go = () => uni.navigateTo({ url: '/pages/health/index' })
 </script>

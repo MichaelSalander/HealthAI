@@ -5,8 +5,9 @@ import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
 import { healthRepository } from '../../services/mock/repositories'
 import { useHealthStore } from '../../stores/health'
+import { uniApi as uni } from '../../services/platform/uni'
 import type { HealthReport } from '../../types/domain'
-const reports = ref<HealthReport[]>([]); const loading = ref(false); const store = useHealthStore(); const uni = (globalThis as any).uni
+const reports = ref<HealthReport[]>([]); const loading = ref(false); const store = useHealthStore()
 const load = async () => { reports.value = await healthRepository.listReports() }; load()
 const upload = async () => { loading.value = true; await healthRepository.uploadReport('体检报告_20241010.pdf'); await new Promise(r => setTimeout(r, 600)); loading.value = false; store.markReportUploaded(); await load(); uni.showToast({ title: '解析成功' }) }
 const go = () => uni.navigateTo({ url: '/pages/result/index' })

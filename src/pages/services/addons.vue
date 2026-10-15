@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'
-const uni = (globalThis as any).uni
+import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'; import { uniApi as uni } from '../../services/platform/uni'
 const items = [{ name: '单次咨询', desc: '60分钟专业咨询', price: 29900 }, { name: '报告解读', desc: '体检报告专业解读', price: 19900 }, { name: '营养方案', desc: '个性化营养饮食方案', price: 50000 }, { name: '运动方案', desc: '个性化运动指导方案', price: 50000 }]
 const buy = (name: string, price: number) => uni.navigateTo({ url: `/pages/order/confirm?name=${encodeURIComponent(name)}&price=${price}` })
 </script>

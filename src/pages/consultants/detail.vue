@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'
-const uni = (globalThis as any).uni
+import AppCard from '../../components/AppCard.vue'; import PrimaryButton from '../../components/PrimaryButton.vue'; import { uniApi as uni } from '../../services/platform/uni'
 const go = (url: string) => uni.navigateTo({ url })
 </script>
 <template><view class="page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">健管师详情</text><text>♧</text></view><AppCard class="profile"><view class="avatar">李</view><text class="name">李晓雯</text><text class="muted">高级健康管理师 · 慢病管理</text><text class="rating">★ 4.9　523条评价</text></AppCard><view class="section-title">擅长领域</view><view class="tags"><text v-for="x in ['体重管理','运动营养','慢病管理']" :key="x" class="tag">{{ x }}</text></view><view class="section-title">专业认证</view><AppCard><view class="list-item">◉　国家注册营养师</view><view class="list-item">◉　健康管理师（高级）</view><view class="list-item">◉　慢性病管理专项认证</view></AppCard><AppCard><text class="section-title">个人简介</text><text class="muted">擅长通过科学营养、运动管理和生活方式干预，帮助用户改善健康状态。</text><PrimaryButton label="选择服务" @click="go('/pages/plans/trial')" /></AppCard></view></template>

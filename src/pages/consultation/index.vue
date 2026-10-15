@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'; import AppCard from '../../components/AppCard.vue'
-const uni = (globalThis as any).uni
+import { ref } from 'vue'; import AppCard from '../../components/AppCard.vue'; import { uniApi as uni } from '../../services/platform/uni'
 const input = ref(''); const messages = ref([{ from: 'consultant', text: '你好！已查看你的体检报告。主要问题是 LDL 偏高，我们可以从饮食和运动两方面逐步调整。' }, { from: 'user', text: '好的，请问饮食上有什么建议？' }]); const send = () => { if (!input.value.trim()) return; messages.value.push({ from: 'user', text: input.value }); input.value = '' }
 </script>
 <template><view class="page chat-page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><view><text class="top-title">李晓雯</text><text class="online">在线</text></view><text>⋯</text></view><scroll-view scroll-y class="messages"><view v-for="(item, i) in messages" :key="i" :class="['bubble-row', item.from]"><view class="bubble">{{ item.text }}</view></view></scroll-view><view class="quick"><text>常用问题</text><text>预约咨询</text><text>发送报告</text></view><view class="composer"><input v-model="input" placeholder="请输入消息…" confirm-type="send" @confirm="send" /><button class="send" @click="send">发送</button></view></view></template>

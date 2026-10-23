@@ -24,6 +24,9 @@
     ,{ "path": "pages/trends/index", "style": { "navigationBarTitleText": "历史趋势" } }
     ,{ "path": "pages/records/index", "style": { "navigationBarTitleText": "服务记录" } }
     ,{ "path": "pages/orders/index", "style": { "navigationBarTitleText": "我的订单" } }
+    ,{ "path": "pages/consultants/booking", "style": { "navigationBarTitleText": "预约咨询" } }
+    ,{ "path": "pages/health-centers/index", "style": { "navigationBarTitleText": "指定体检中心" } }
+    ,{ "path": "pages/company/index", "style": { "navigationBarTitleText": "关于我们" } }
   ],
   "globalStyle": { "navigationBarTextStyle": "black", "navigationBarTitleText": "AI智能健康管理", "navigationBarBackgroundColor": "#ffffff", "backgroundColor": "#f7fbfa" }
 }

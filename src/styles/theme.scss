@@ -1,14 +1,14 @@
-$brand: #08b39f;
-$brand-dark: #087e78;
+$brand: #d96b2b;
+$brand-dark: #a94b1d;
 $ink: #15223a;
 $muted: #71828a;
 $danger: #f04438;
 
 html, body, #app { margin: 0; min-height: 100%; }
 html, body { overflow-x: hidden; }
-body { background: #e9f1ef; }
-#app { width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto; overflow-x: hidden; background: #f7fbfa; box-shadow: 0 0 36px rgba(22, 70, 65, .10); }
-page { display: block; width: 100%; min-height: 100vh; overflow-x: hidden; background: #f7fbfa; color: $ink; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+body { background: #f4eee8; }
+#app { width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto; overflow-x: hidden; background: #fffaf6; box-shadow: 0 0 36px rgba(109, 61, 36, .10); }
+page { display: block; width: 100%; min-height: 100vh; overflow-x: hidden; background: #fffaf6; color: $ink; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
 view, uni-view { display: block; }
 .title, .subtitle, .section-title, .metric-name, .metric-value, .muted, .small { display: block; white-space: normal; }
 uni-text.title, uni-text.subtitle, uni-text.section-title, uni-text.metric-name, uni-text.metric-value, uni-text.muted, uni-text.small { display: block; white-space: normal; }
@@ -20,16 +20,16 @@ uni-text.title, uni-text.subtitle, uni-text.section-title, uni-text.metric-name,
 .page { display: block; width: 100%; max-width: 430px; min-height: 100vh; box-sizing: border-box; margin: 0 auto; padding: 24rpx 28rpx 150rpx; overflow-x: hidden; }
 view.page { width: 100% !important; box-sizing: border-box; }
 view.page, view.card, view.hero, view.upload-box { display: block; }
-.hero { background: linear-gradient(145deg, #c7f6ed 0%, #f7fffd 68%); border-radius: 36rpx; padding: 38rpx 30rpx 32rpx; position: relative; overflow: hidden; }
-.hero::after { content: '✦'; position: absolute; right: 28rpx; bottom: 20rpx; color: rgba(8,179,159,.24); font-size: 110rpx; }
+.hero { background: linear-gradient(145deg, #fff0e5 0%, #fffaf6 68%); border-radius: 36rpx; padding: 38rpx 30rpx 32rpx; position: relative; overflow: hidden; }
+.hero::after { content: '✦'; position: absolute; right: 28rpx; bottom: 20rpx; color: rgba(217,107,43,.24); font-size: 110rpx; }
 .title { font-size: 40rpx; font-weight: 700; line-height: 1.35; }
 .subtitle { color: $muted; font-size: 26rpx; line-height: 1.5; }
-.card { width: 100%; box-sizing: border-box; background: #fff; border-radius: 26rpx; padding: 28rpx; box-shadow: 0 8rpx 30rpx rgba(30, 112, 103, .06); margin-top: 22rpx; border: 1rpx solid rgba(20, 150, 135, .05); overflow: hidden; }
+.card { width: 100%; box-sizing: border-box; background: #fff; border-radius: 26rpx; padding: 28rpx; box-shadow: 0 8rpx 30rpx rgba(109, 61, 36, .06); margin-top: 22rpx; border: 1rpx solid rgba(217, 107, 43, .08); overflow: hidden; }
 .section-title { font-size: 31rpx; font-weight: 700; margin: 28rpx 0 16rpx; }
 .row { display: flex; align-items: center; justify-content: space-between; }
 .btn { width: 100%; box-sizing: border-box; background: $brand; color: #fff; border-radius: 18rpx; font-size: 28rpx; line-height: 88rpx; height: 88rpx; text-align: center; border: 0; padding: 0 20rpx; white-space: nowrap; }
-.btn.secondary { background: #e7faf6; color: $brand-dark; }
-.tag { display: inline-block; background: #e8faf7; color: $brand-dark; border-radius: 12rpx; padding: 8rpx 16rpx; font-size: 22rpx; margin-right: 10rpx; }
+.btn.secondary { background: #fff0e5; color: $brand-dark; }
+.tag { display: inline-block; background: #fff0e5; color: $brand-dark; border-radius: 12rpx; padding: 8rpx 16rpx; font-size: 22rpx; margin-right: 10rpx; }
 .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; }
 .metric { background: #f8fbfb; border-radius: 20rpx; padding: 22rpx; }
 .metric-name { color: $muted; font-size: 24rpx; }
@@ -37,16 +37,16 @@ view.page, view.card, view.hero, view.upload-box { display: block; }
 .danger { color: $danger; }
 .list-item { display: flex; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid #edf2f1; }
 .list-item:last-child { border-bottom: 0; }
-.icon-box { width: 72rpx; height: 72rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: #e6faf6; margin-right: 18rpx; font-size: 34rpx; }
+.icon-box { width: 72rpx; height: 72rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: #fff0e5; margin-right: 18rpx; font-size: 34rpx; }
 .grow { flex: 1; }
 .muted { color: $muted; }
 .small { font-size: 23rpx; }
 .center { text-align: center; }
-.score { width: 190rpx; height: 190rpx; border: 18rpx solid #a8efe3; border-right-color: $brand; border-radius: 50%; margin: 4rpx auto 24rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score { width: 190rpx; height: 190rpx; border: 18rpx solid #f6d8c5; border-right-color: $brand; border-radius: 50%; margin: 4rpx auto 24rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .score-num { font-size: 54rpx; font-weight: 800; }
-.upload-box { width: 100%; box-sizing: border-box; border: 2rpx dashed #82d8cc; border-radius: 24rpx; padding: 56rpx 20rpx; text-align: center; color: $brand-dark; background: #f8fffd; overflow: hidden; }
+.upload-box { width: 100%; box-sizing: border-box; border: 2rpx dashed #e7a579; border-radius: 24rpx; padding: 56rpx 20rpx; text-align: center; color: $brand-dark; background: #fffaf6; overflow: hidden; }
 .image, image { max-width: 100%; box-sizing: border-box; }
 text, view, button, input, textarea { box-sizing: border-box; }
 text { max-width: 100%; overflow-wrap: anywhere; }
-.chart { height: 180rpx; display: flex; align-items: flex-end; gap: 16rpx; padding: 18rpx 12rpx; border-bottom: 2rpx solid #d7eeea; }
-.bar { flex: 1; background: linear-gradient(#19c8ad, #b8f1e6); border-radius: 12rpx 12rpx 0 0; }
+.chart { height: 180rpx; display: flex; align-items: flex-end; gap: 16rpx; padding: 18rpx 12rpx; border-bottom: 2rpx solid #f1d8c8; }
+.bar { flex: 1; background: linear-gradient(#e9935e, #f8d9c4); border-radius: 12rpx 12rpx 0 0; }

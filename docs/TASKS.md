@@ -28,6 +28,17 @@
 - [ ] T403 其余 CMS 内容、健管师分类、指标文案同步 C 端
 - [x] T404 Mock AI Provider：生成基础健康结果与健管师端完整 Insight 摘要
 - [ ] T405 核心健康资料采集闭环：健康档案分段填写、报告版本、解析候选、确认/修正与来源追溯
+
+## 2026-10 新增需求
+- [x] 橘白品牌主题与客户端入口
+- [x] 免费咨询与预约时段页面
+- [x] 缺少血液检查时导流指定体检中心
+- [x] 公司介绍与卫教入口
+- [x] 健管师状态、时段与通知后台原型
+- [x] 待咨询人工派单与自动派单后台原型
+- [ ] 真实 API、数据库与文件存储
+- [ ] 真实语音 Provider
+- [ ] 健管师第 6 项与公司介绍第 2 项需求（待补定义）
 - [x] T405a C 端健康档案基础资料采集：Repository 持久化、档案入口与表单保存
 - [ ] T406 Mock API：Profile/Consent/Report Extraction/Observation Confirm/AI Report Contract
 - [x] T406a 本地持久化 API：Profile、Reports、Observations、AI Reports；资料写入 `server/mock-db.json`

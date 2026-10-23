@@ -36,6 +36,18 @@
 - `POST /payments/mock-success` → `Payment`
 - `GET /orders` → `Order[]`
 
+## Consultation / Content
+- `GET /consultants/:id/availability` → `{ status, daily_limit, free_consult_enabled, slots[] }`
+- `PUT /consultants/me/availability` → `ConsultantAvailability`
+- `POST /consultations/bookings` → `ConsultationBooking`
+- `GET /consultations/queue` → `ConsultationQueue[]`
+- `POST /consultations/queue/:id/assign` → `ConsultationBooking`
+- `POST /consultations/queue/auto-assign` → `{ assigned_count }`
+- `GET /notifications` → `Notification[]`
+- `POST /notifications/:id/read` → `Notification`
+- `GET /health-check-centers` → `HealthCheckCenter[]`
+- `GET /education/articles` → `EducationArticle[]`
+
 ## Provider 约束
 WechatAuthProvider、PaymentProvider、OcrProvider、AiProvider、ImProvider 均通过 interface 注入；Mock provider 不得改变正式返回结构。
 - `OcrProvider` 只负责从报告版本提取 candidate，不得直接写入 confirmed Observation。

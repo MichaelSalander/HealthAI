@@ -32,6 +32,15 @@
 | CommissionLedger | id, consultantId, orderId, type, amountFen, direction, reason, createdBy | 审计不可删除 |
 | Settlement | id, consultantId, period, grossFen, adjustmentFen, payableFen, status, paidAt | 月度结算 |
 | AuditLog | id, actorId, action, resourceType, resourceId, beforeJson, afterJson, ip, createdAt | 健康资料、授权、解析确认、订单与后台配置均需记录 |
+| ConsultantAvailability | id, consultantId, status, dailyLimit, freeConsultEnabled, updatedAt | 健管师当前接单状态与免费咨询资格 |
+| ConsultantSchedule | id, consultantId, slotDate, startAt, endAt, capacity, bookedCount, status | 可预约时段与容量控制 |
+| ConsultationBooking | id, userId, consultantId, type, scheduledAt, status, source | 免费/语音/复诊咨询预约与状态 |
+| ConsultationQueue | id, bookingId, priority, assignmentMode, assignedAt, timeoutAt | 待分配、人工派单与自动派单 |
+| VoiceSession | id, bookingId, provider, status, startedAt, endedAt, durationSec | 语音服务 Provider 记录 |
+| Notification | id, recipientId, type, title, body, resourceType, resourceId, readAt | 客户与健管师通知中心 |
+| HealthCheckCenter | id, name, address, phone, mapUrl, enabled | 后台维护指定体检中心 |
+| HealthCheckPackage | id, centerId, name, items, priceFen, enabled | 体检中心检查套餐 |
+| EducationArticle | id, title, category, body, status, publishedAt, updatedAt | 卫教内容与发布状态 |
 
 ### 采集与版本规则
 - 原始报告文件、文件 hash、上传时间与报告日期必须保留；重新上传不得覆盖旧版本。

@@ -6,6 +6,7 @@
     "dev:local": "node tools/start-local.mjs",
     "test:consultation": "node --test server/consultation-workflow.test.mjs",
     "test:api": "node --test server/mock-api.integration.test.mjs",
+    "test:production": "node --test server/production-readiness.test.mjs",
     "dev:h5": "uni -p h5",
     "dev:mp-weixin": "uni -p mp-weixin",
     "dev:api": "node --env-file-if-exists=server/.env server/mock-api.mjs",

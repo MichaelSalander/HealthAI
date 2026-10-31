@@ -4,6 +4,18 @@ import type { AIHealthReport, HealthProfile, HealthReport, Observation, Order, R
 
 const base = (((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let customerSession: DemoSession | undefined
+const customerSessionKey = 'healthai_customer_session'
+function readCustomerSession(): DemoSession | undefined {
+  try {
+    const value = uni.getStorageSync(customerSessionKey)
+    return value ? JSON.parse(String(value)) as DemoSession : undefined
+  } catch { return undefined }
+}
+function persistCustomerSession(session: DemoSession): DemoSession {
+  customerSession = session
+  try { uni.setStorageSync(customerSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
+  return session
+}
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession): Promise<T> {
   return new Promise((resolve, reject) => {
     uni.request({ url: `${base}${path}`, method, data: data as Record<string, unknown>, timeout: 10000,
@@ -18,18 +30,18 @@ function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?:
 export const consultationRepository = {
   login(role: DemoRole, id?: string) {
     if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat') return this.loginWithWechat(role)
-    return request<DemoSession>('/auth/demo-login', 'POST', { role, id })
+    return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => role === 'customer' ? persistCustomerSession(session) : session)
   },
   loginWithWechat(role: DemoRole = 'customer') {
     return new Promise<DemoSession>((resolve, reject) => {
       const login = (uni as typeof uni & { login?: (options: { provider: string; success: (result: { code?: string }) => void; fail: (error: unknown) => void }) => void }).login
       if (!login) return reject(new Error('当前运行环境不支持微信登录，请使用微信小程序预览'))
-      login({ provider: 'weixin', success: result => result.code ? this.wechatLogin(result.code, role).then(session => { if (role === 'customer') customerSession = session; resolve(session) }).catch(reject) : reject(new Error('微信未返回登录 code')), fail: () => reject(new Error('微信登录失败，请重试')) })
+      login({ provider: 'weixin', success: result => result.code ? this.wechatLogin(result.code, role).then(session => { if (role === 'customer') persistCustomerSession(session); resolve(session) }).catch(reject) : reject(new Error('微信未返回登录 code')), fail: () => reject(new Error('微信登录失败，请重试')) })
     })
   },
   wechatLogin(code: string, role: DemoRole = 'customer') { return request<DemoSession>('/auth/wechat-login', 'POST', { code, role }) },
-  async customer(): Promise<DemoSession> { return customerSession ||= await this.login('customer') },
-  async useCustomer(id: string) { customerSession = await this.login('customer', id); return customerSession },
+  async customer(): Promise<DemoSession> { return customerSession ||= readCustomerSession() || await this.login('customer') },
+  async useCustomer(id: string) { return persistCustomerSession(await this.login('customer', id)) },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   async eligibility() { return request<{ hasBloodTest: boolean; healthCenterRoute: string }>('/consultations/eligibility', 'GET', undefined, await this.customer()) },
   async book(consultantId: string, slotId: string, requestId: string) { return request<ConsultationRequest>('/consultations/bookings', 'POST', { consultantId, slotId, requestId }, await this.customer()) },

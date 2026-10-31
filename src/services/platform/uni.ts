@@ -16,6 +16,8 @@ type UniRuntime = {
   reLaunch: (options: NavigateOptions) => unknown
   navigateBack?: () => unknown
   showToast?: (options: ToastOptions) => unknown
+  getStorageSync?: (key: string) => unknown
+  setStorageSync?: (key: string, value: string) => unknown
   [key: string]: unknown
 }
 
@@ -27,7 +29,9 @@ const runtime = {
   request: nativeRuntime.request ?? (() => { throw new Error('当前运行环境不支持 uni.request') }),
   navigateTo: nativeRuntime.navigateTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
   redirectTo: nativeRuntime.redirectTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
-  reLaunch: nativeRuntime.reLaunch ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` })
+  reLaunch: nativeRuntime.reLaunch ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
+  getStorageSync: nativeRuntime.getStorageSync ?? (() => undefined),
+  setStorageSync: nativeRuntime.setStorageSync ?? (() => undefined)
 } as UniRuntime
 
 export const uniApi = {
@@ -46,5 +50,11 @@ export const uniApi = {
     const nativeShowToast = runtime.showToast
     if (nativeShowToast) return nativeShowToast.call(runtime, options)
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('healthai-toast', { detail: options.title }))
+  },
+  getStorageSync(key: string) {
+    return runtime.getStorageSync?.call(runtime, key)
+  },
+  setStorageSync(key: string, value: string) {
+    return runtime.setStorageSync?.call(runtime, key, value)
   }
 }

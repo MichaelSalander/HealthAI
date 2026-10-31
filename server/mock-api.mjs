@@ -122,6 +122,16 @@ function resolvedCorsOrigin(req) {
   return requestOrigin && corsOrigins.includes(requestOrigin) ? requestOrigin : corsOrigins[0] || 'null'
 }
 function actorFromRequest(req) { return verifyToken((req.headers.authorization || '').replace(/^Bearer /, '')) }
+function readinessIssues() {
+  const issues = []
+  try {
+    fs.mkdirSync(uploadRoot, { recursive: true })
+    fs.accessSync(uploadRoot, fs.constants.W_OK)
+  } catch { issues.push('upload_directory_not_writable') }
+  if (isProduction && !operatorAccounts.length) issues.push('operator_accounts_not_configured')
+  if (isProduction && (!wechatConfig.appId || !wechatConfig.appSecret)) issues.push('wechat_credentials_not_configured')
+  return issues
+}
 function requireActor(req, roles = []) {
   const actor = actorFromRequest(req)
   if (!actor) { const error = new Error('请先登录'); error.status = 401; throw error }
@@ -159,6 +169,10 @@ const server = http.createServer(async (req, res) => {
   const route = url.pathname.replace(/^\/api\/v1(?=\/|$)/, '/api')
   // 供 Cloudways/Nginx/监控探针使用，不需要登录，也不暴露业务数据。
   if (route === '/healthz' && req.method === 'GET') return send(res, 200, { code: 0, data: { service: 'healthai-api', status: 'ok', version: apiVersion } })
+  if (route === '/readyz' && req.method === 'GET') {
+    const issues = readinessIssues()
+    return send(res, issues.length ? 503 : 200, { code: issues.length ? 503 : 0, data: { service: 'healthai-api', status: issues.length ? 'not_ready' : 'ready', version: apiVersion, issues } })
+  }
   if (route === '/api/auth/operator-login' && req.method === 'POST') {
     const body = await readBody(req)
     if (!['admin', 'consultant'].includes(body.role) || typeof body.username !== 'string' || typeof body.password !== 'string') return send(res, 400, { code: 400, message: '登录信息不完整' })

@@ -65,10 +65,11 @@ pm2 startup
 
 ```bash
 curl https://你的API域名/healthz
+curl https://你的API域名/readyz
 curl https://你的API域名/api/v1/status
 ```
 
-两个请求都应该返回 `status: ok`。部署后也可以用项目内置脚本验证：
+三个请求都应该返回成功；其中 `/readyz` 必须返回 `status: ready`。部署后也可以用项目内置脚本验证：
 
 ```bash
 HEALTHAI_VERIFY_BASE_URL=https://你的API域名 HEALTHAI_VERIFY_ORIGIN=https://你的客户端域名 pnpm run verify:production

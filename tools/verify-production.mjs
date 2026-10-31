@@ -21,6 +21,9 @@ async function requestRaw(path, options = {}) {
 
 const health = await request('/healthz')
 console.log(`healthz: ${health.data?.status || 'unknown'}`)
+const ready = await request('/readyz')
+if (ready.data?.status !== 'ready') throw new Error(`readyz 未就绪：${(ready.data?.issues || []).join(', ')}`)
+console.log('readyz: ready')
 const status = await request('/api/v1/status')
 console.log(`api status: ${status.data?.status || 'unknown'}`)
 

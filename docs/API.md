@@ -57,6 +57,7 @@
 
 - `pnpm run dev:api` 啟動 HealthAI API，預設監聽 `127.0.0.1:8787`。
 - 預設 `HEALTHAI_DB=sqlite`，資料寫入 `server/healthai.sqlite`；第一次啟動會以 `server/mock-db.json` 作為種子資料。
+- 正式環境可設定 `HEALTHAI_DB=postgres` 與 `HEALTHAI_DATABASE_URL`，API 啟動時會確認 PostgreSQL 連線並使用 `healthai_state` 表持久化狀態；連線失敗會直接停止，不回退測試存儲。
 - 若需暫時使用舊 JSON 存儲，可設定 `HEALTHAI_DB=json` 與 `HEALTHAI_DATA_FILE`；前端不需要改 API URL。
 - 生產環境需將 Repository 替換為 PostgreSQL/MySQL，並把 `HOST` 設為 `0.0.0.0`，不能把 SQLite 檔案直接當作多人高併發資料庫。
 

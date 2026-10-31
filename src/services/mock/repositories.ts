@@ -56,6 +56,8 @@ export const authProvider: AuthProvider = { async login() { return sessionUser(a
 export const healthRepository: HealthRepository = {
   async getProfile() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile | null>('/health/profile', undefined, session); if (remote) profile = remote; return remote || profile },
   async saveProfile(input) { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile>('/health/profile', { method: 'PUT', body: JSON.stringify(input) }, session); profile = remote; writeStorage('healthai_profile', profile); return profile },
+  async listConsents() { return consultationRepository.consents() },
+  async grantConsent(consentType = 'health_data', version = 'v1') { return consultationRepository.saveConsent(consentType, version, 'granted') },
   async getObservations() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<Observation[]>('/health/observations', undefined, session); observations = remote; writeStorage('healthai_observations', observations); return remote },
   async hasBloodTest() { return (await consultationRepository.eligibility()).hasBloodTest },
   async getTrends(code: string) {

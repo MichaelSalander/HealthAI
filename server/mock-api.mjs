@@ -63,6 +63,7 @@ const initialState = {
     { id: 'o-005', code: 'weight', name: '体重', value: '62.5', unit: 'kg', reference: '目标 55.0', status: '正常', measuredAt: '2024-12-10' }
   ] },
   aiReports: { 'u-001': [] },
+  consents: {},
   reportExtractions: {},
   homeEntries: [
     { id: 'upload', title: '上传体检报告', subtitle: 'AI 帮你初步分析', route: '/pages/report/index', enabled: true, sort: 1 },
@@ -295,6 +296,20 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/health/profile' && req.method === 'GET') {
     const actor = requireActor(req, ['customer'])
     return send(res, 200, { code: 0, data: state.profiles[actor.id] || null })
+  }
+  if (route === '/api/health/consents' && req.method === 'GET') {
+    const actor = requireActor(req, ['customer'])
+    return send(res, 200, { code: 0, data: state.consents?.[actor.id] || [] })
+  }
+  if (route === '/api/health/consents' && req.method === 'POST') {
+    const actor = requireActor(req, ['customer']); const body = await readBody(req)
+    const consentType = ['health_data', 'privacy', 'service'].includes(body.consentType) ? body.consentType : null
+    const status = ['granted', 'revoked'].includes(body.status) ? body.status : null
+    const version = typeof body.version === 'string' && body.version.trim() ? body.version.trim() : null
+    if (!consentType || !status || !version) { const error = new Error('授权类型、版本与状态不能为空'); error.status = 400; throw error }
+    const now = new Date().toISOString(); const record = { id: `consent-${Date.now()}-${randomUUID().slice(0, 8)}`, userId: actor.id, consentType, version, status, consentedAt: now, ...(status === 'revoked' ? { revokedAt: now } : {}) }
+    state.consents ||= {}; state.consents[actor.id] = [record, ...(state.consents[actor.id] || []).filter(item => item.consentType !== consentType || item.status === 'revoked')]; persist()
+    return send(res, 201, { code: 0, data: record })
   }
   if (route === '/api/health/profile' && req.method === 'PUT') {
     const actor = requireActor(req, ['customer']); const body = await readBody(req); const id = actor.id

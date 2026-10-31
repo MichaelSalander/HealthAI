@@ -1,6 +1,6 @@
 import { uniApi as uni } from '../platform/uni'
 import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, ConsultationRoom, ConsultationMessage, VoiceSession, ServiceRecord, ConsultationMode, DemoRole, DemoSession, HealthTimelineEvent } from '../../types/consultation'
-import type { AIHealthReport, HealthProfile, HealthReport, Observation, Order, ReportExtraction, ServicePlan } from '../../types/domain'
+import type { AIHealthReport, ConsentRecord, HealthProfile, HealthReport, Observation, Order, ReportExtraction, ServicePlan } from '../../types/domain'
 
 const base = (((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let customerSession: DemoSession | undefined
@@ -69,6 +69,8 @@ export const consultationRepository = {
   async useCustomer(id: string) { return persistCustomerSession(await this.login('customer', id)) },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   async eligibility() { return request<{ hasBloodTest: boolean; healthCenterRoute: string }>('/consultations/eligibility', 'GET', undefined, await this.customer()) },
+  async consents() { return request<ConsentRecord[]>('/health/consents', 'GET', undefined, await this.customer()) },
+  async saveConsent(consentType: ConsentRecord['consentType'], version: string, status: ConsentRecord['status'] = 'granted') { return request<ConsentRecord>('/health/consents', 'POST', { consentType, version, status }, await this.customer()) },
   async book(consultantId: string, slotId: string, requestId: string) { return request<ConsultationRequest>('/consultations/bookings', 'POST', { consultantId, slotId, requestId }, await this.customer()) },
   async bookings(session?: DemoSession) { return request<ConsultationRequest[]>('/consultations/bookings', 'GET', undefined, session || await this.customer()) },
   saveAvailability(consultant: ConsultationConsultant, session: DemoSession) { return request<ConsultationConsultant>(`/consultation-directory/${consultant.id}`, 'PUT', consultant, session) },

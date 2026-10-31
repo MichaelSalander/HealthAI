@@ -68,6 +68,11 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   const trends = await api('/api/v1/health/trends?code=weight', { headers: auth(customer) })
   assert.equal(trends.response.status, 200)
   assert.ok(trends.body.data.some(item => item.value === 62.5))
+  const consent = await api('/api/v1/health/consents', { method: 'POST', headers: auth(customer), body: JSON.stringify({ consentType: 'health_data', version: 'v1', status: 'granted' }) })
+  assert.equal(consent.response.status, 201)
+  assert.equal(consent.body.data.status, 'granted')
+  const consents = await api('/api/v1/health/consents', { headers: auth(customer) })
+  assert.ok(consents.body.data.some(item => item.consentType === 'health_data' && item.status === 'granted'))
 
   const upload = await api('/api/v1/health/reports', {
     method: 'POST',

@@ -79,7 +79,7 @@ VITE_API_BASE_URL=https://你的API域名/api/v1
 
 ## 6. GitHub Pages（仅 H5 静态前端）
 
-仓库已提供 `.github/workflows/deploy-pages.yml`。在 GitHub 仓库 Settings → Secrets and variables → Actions 新增：
+仓库已提供 `.github/workflows/deploy-pages.yml`。它会同时发布 C 端与 Admin，Admin 位于 `/HealthAI/admin/`。在 GitHub 仓库 Settings → Secrets and variables → Actions 新增：
 
 ```text
 HEALTHAI_API_BASE_URL=https://你的API域名/api/v1

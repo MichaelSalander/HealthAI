@@ -16,6 +16,7 @@ export const consultationAdminApi = {
   directory: () => request<ConsultationConsultant[]>('/consultation-directory'),
   queue: () => request<{ bookings: ConsultationRequest[]; presence: ConsultationPresence[] }>('/consultations/queue'),
   requestQueue: () => request<{ requests: ConsultationRequestV2[]; presence: ConsultationPresence[] }>('/consultation-requests/queue'),
+  clients: () => request<ConsultantClient[]>('/consultant/clients'),
   notices: () => request<ConsultationNotice[]>('/consultation-notifications'),
   assign: (id: string, consultantId: string) => request(`/consultations/bookings/${id}/assign`, 'POST', { consultantId }),
   autoAssign: () => request<{ assignedCount: number }>('/consultations/auto-assign', 'POST', {}),

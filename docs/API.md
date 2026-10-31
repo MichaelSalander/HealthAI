@@ -3,12 +3,12 @@
 ## 内容配置
 
 - `GET /api/v1/content-settings` → 客户端可展示文案配置
-- `PUT /api/v1/content-settings` → Admin 保存健康结果与咨询引导文案（需 Admin Session）
+- `PUT /api/v1/content-settings` → Admin 保存公司介绍、隐私、健康结果与咨询引导文案（需 Admin Session）
 - `GET /api/v1/health/reports/:id/file` → 按客户本人、已配对健管师或 Admin 权限读取报告原文件；不会返回内部存储路径
 
 ## 即时咨询房间 API（目标 Contract）
 
-以下接口前缀 `/api/v1`；目录和演示登录公开，其他新咨询接口使用 `Authorization: Bearer <demo token>`。演示角色登录仅用于本地，不可用于公网生产环境。
+以下接口前缀 `/api/v1`；目录公开，需登录的接口使用 `Authorization: Bearer <signed token>`。演示角色登录仅用于本地，不可用于公网生产环境。
 
 | 方法 | 路径 | 用途/角色 |
 |---|---|---|

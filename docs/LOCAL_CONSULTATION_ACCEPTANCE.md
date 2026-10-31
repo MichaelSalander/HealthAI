@@ -41,9 +41,9 @@ pnpm run dev:local
 ## 数据与权限
 
 公开 demo-login 允许选择 customer、consultant、admin，仅供本地演示，不是生产认证。
-新咨询接口验证角色及归属；Token 只保存在进程内，API 重启后刷新页面重新登录。
-咨询请求、房间、消息、语音状态、通知与审计写入 server/mock-db.json 的 workflow 字段，保留既有健康资料。
-旧健康资料/CMS 接口尚未全部迁移到生产权限体系。
+新咨询接口验证角色及归属；Token 为服务器签名并带过期时间，API 重启后仍可验证。
+咨询请求、房间、消息、语音状态、通知与审计在默认配置下写入 `server/healthai.sqlite`，保留既有健康资料；只有显式设置 `HEALTHAI_DB=json` 时才使用 JSON 数据文件。
+API 使用带过期时间的服务器签名 Token，重启后仍可验证；生产环境必须关闭 demo-login，并配置正式运营账号。
 
 ## 验证
 
@@ -53,6 +53,6 @@ console：`pnpm run typecheck`、`pnpm run build`。
 
 ## 下一批
 
-真实 WebSocket、语音、系统推播、生产认证尚未接入；本地正式 API 与 SQLite 已接入，Cloudways 部署时可通过 `HEALTHAI_DB`／数据库 Repository 替换为 PostgreSQL 或 MySQL。
+真实 WebSocket、语音、系统推播、正式第三方 Provider 尚未接入；本地正式 API 与 SQLite 已接入，Cloudways 部署时可通过 `HEALTHAI_DB`／数据库 Repository 替换为 PostgreSQL 或 MySQL。
 公司时段与名额由 Admin Mock 配置；健管师端不再添加或修改时段。
 体检中心仍为示例，实际合作中心与联系方式待提供。

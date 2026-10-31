@@ -27,7 +27,8 @@ HOST=0.0.0.0
 PORT=8787
 HEALTHAI_SESSION_SECRET=长度至少32位的随机值
 HEALTHAI_SESSION_TTL_SECONDS=86400
-HEALTHAI_CORS_ORIGIN=https://你的客户端域名
+# 多个前端来源用逗号分隔，例如 C 端与 Admin 各一个域名
+HEALTHAI_CORS_ORIGIN=https://你的客户端域名,https://你的Admin域名
 HEALTHAI_DB=sqlite
 HEALTHAI_DB_FILE=/home/应用用户/healthai-data/healthai.sqlite
 HEALTHAI_UPLOAD_DIR=/home/应用用户/healthai-data/uploads

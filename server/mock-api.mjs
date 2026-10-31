@@ -17,6 +17,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 const sessionSecret = process.env.HEALTHAI_SESSION_SECRET || 'development-only-change-this-secret'
 const sessionTtlSeconds = Number(process.env.HEALTHAI_SESSION_TTL_SECONDS || 86400)
 const corsOrigin = process.env.HEALTHAI_CORS_ORIGIN || '*'
+const corsOrigins = corsOrigin.split(',').map(item => item.trim()).filter(Boolean)
 if (isProduction && sessionSecret === 'development-only-change-this-secret') throw new Error('生产环境必须设置 HEALTHAI_SESSION_SECRET')
 if (isProduction && corsOrigin === '*') throw new Error('生产环境必须设置 HEALTHAI_CORS_ORIGIN，禁止使用 *')
 const wechatConfig = { appId: process.env.WECHAT_APP_ID, appSecret: process.env.WECHAT_APP_SECRET, testMode: process.env.WECHAT_TEST_MODE === 'true' }
@@ -94,6 +95,11 @@ function secretTextEqual(left, right) {
   const b = createHmac('sha256', sessionSecret).update(String(right || '')).digest()
   return timingSafeEqual(a, b)
 }
+function resolvedCorsOrigin(req) {
+  if (corsOrigins.includes('*')) return '*'
+  const requestOrigin = req.headers.origin
+  return requestOrigin && corsOrigins.includes(requestOrigin) ? requestOrigin : corsOrigins[0] || 'null'
+}
 function actorFromRequest(req) { return verifyToken((req.headers.authorization || '').replace(/^Bearer /, '')) }
 function requireActor(req, roles = []) {
   const actor = actorFromRequest(req)
@@ -108,11 +114,11 @@ async function readBody(req) {
 }
 
 function send(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': corsOrigin, 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' })
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': resolvedCorsOrigin(res.__healthaiRequest || { headers: {} }), 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' })
   res.end(JSON.stringify({ message: status < 400 ? 'ok' : '请求失败', requestId: randomUUID(), ...body }))
 }
 function sendFile(res, status, buffer, contentType, fileName) {
-  res.writeHead(status, { 'Content-Type': contentType || 'application/octet-stream', 'Content-Length': buffer.length, 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`, 'Access-Control-Allow-Origin': corsOrigin, 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' })
+  res.writeHead(status, { 'Content-Type': contentType || 'application/octet-stream', 'Content-Length': buffer.length, 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`, 'Access-Control-Allow-Origin': resolvedCorsOrigin(res.__healthaiRequest || { headers: {} }), 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' })
   res.end(buffer)
 }
 function reportView(report) {
@@ -122,6 +128,7 @@ function reportView(report) {
 
 const server = http.createServer(async (req, res) => {
   try {
+  res.__healthaiRequest = req
   if (req.method === 'OPTIONS') return send(res, 204, {})
   const url = new URL(req.url, 'http://localhost')
   const route = url.pathname.replace(/^\/api\/v1(?=\/|$)/, '/api')

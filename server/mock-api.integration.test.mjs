@@ -22,7 +22,9 @@ before(async () => {
       HEALTHAI_DB: 'json',
       HEALTHAI_DATA_FILE: path.join(tempRoot, 'state.json'),
       HEALTHAI_UPLOAD_DIR: path.join(tempRoot, 'uploads'),
-      HEALTHAI_SESSION_SECRET: 'integration-test-secret'
+      HEALTHAI_SESSION_SECRET: 'integration-test-secret',
+      LLM_PROVIDER: 'mock',
+      OCR_PROVIDER: 'mock'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   })

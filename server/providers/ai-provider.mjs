@@ -3,6 +3,21 @@ function parseJson(content) {
   return JSON.parse(text)
 }
 
+function boundedText(value, maxLength = 2000) {
+  return String(value || '').trim().slice(0, maxLength)
+}
+
+function normalizeResult(result) {
+  const riskLevel = ['低风险', '需关注', '高风险'].includes(result?.riskLevel) ? result.riskLevel : '需关注'
+  return {
+    summary: boundedText(result?.summary),
+    riskLevel,
+    focusAreas: Array.isArray(result?.focusAreas) ? result.focusAreas.map(item => boundedText(item, 120)).filter(Boolean).slice(0, 20) : [],
+    consultantInsight: boundedText(result?.consultantInsight),
+    recommendations: Array.isArray(result?.recommendations) ? result.recommendations.map(item => boundedText(item, 300)).filter(Boolean).slice(0, 20) : []
+  }
+}
+
 function mockReport(observations) {
   const abnormal = observations.filter(item => item.status !== '正常')
   return {
@@ -24,11 +39,12 @@ export function createAiProvider({ name = process.env.LLM_PROVIDER || 'mock' } =
   return {
     name: 'openai-compatible',
     async generate({ observations }) {
-      const response = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: '你是健康管理辅助分析模型。只返回 JSON，不做诊断或开药。JSON 必须包含 summary、riskLevel（低风险/需关注/高风险）、focusAreas（字符串数组）、consultantInsight、recommendations（字符串数组）。' }, { role: 'user', content: JSON.stringify({ observations }) }] }) })
+      const timeoutMs = Math.min(Math.max(Number(process.env.LLM_TIMEOUT_MS || 30000), 3000), 120000)
+      const response = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', signal: AbortSignal.timeout(timeoutMs), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: '你是健康管理辅助分析模型。只返回 JSON，不做诊断或开药。JSON 必须包含 summary、riskLevel（低风险/需关注/高风险）、focusAreas（字符串数组）、consultantInsight、recommendations（字符串数组）。' }, { role: 'user', content: JSON.stringify({ observations }) }] }) })
       if (!response.ok) throw new Error(`LLM Provider 请求失败：${response.status}`)
       const payload = await response.json(); const content = payload.choices?.[0]?.message?.content
       const result = parseJson(content)
-      return { summary: String(result.summary || ''), riskLevel: result.riskLevel, focusAreas: Array.isArray(result.focusAreas) ? result.focusAreas.map(String) : [], consultantInsight: String(result.consultantInsight || ''), recommendations: Array.isArray(result.recommendations) ? result.recommendations.map(String) : [] }
+      return normalizeResult(result)
     }
   }
 }

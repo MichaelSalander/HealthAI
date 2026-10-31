@@ -122,6 +122,8 @@
 - [x] T466 PostgreSQL 持久化适配：正式环境可通过 `HEALTHAI_DB=postgres` 与 `HEALTHAI_DATABASE_URL` 使用云端数据库，本地 SQLite 行为保持不变
 - [x] T467 运营账号密码哈希：Admin／健管师登录支持 scrypt `passwordHash`，正式环境不必保存明文密码
 - [x] T468 运营账号配置工具：提供 `pnpm run hash:operator` 生成正式环境账号哈希
+- [x] T469 LLM Provider 稳定性收口：正式兼容接口增加请求超时、结果字段校验与输出长度上限
+- [x] T470 整合测试环境隔离：API 测试强制使用 Mock OCR／LLM，避免本机 Provider 环境变量污染验收结果
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 
 ## 验收命令

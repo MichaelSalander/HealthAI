@@ -77,6 +77,7 @@
 - [x] T440 生产多来源 CORS：客户端与 Admin 域名可用逗号分隔白名单，并按请求 Origin 返回
 - [x] T441 GitHub Pages 同步发布 Admin：Admin 构建产物发布到 `/HealthAI/admin/`
 - [x] T442 生产部署探针与验收脚本：`/healthz`、`/api/v1/status` 与可选 Admin 登录验证
+- [x] T443 HTTP 集成验收：客户健康资料、报告确认、AI 结果、Admin 派单、健管师接单与咨询消息全链路
 - [x] T003a C 端页面统一依赖 `services/api/repositories` 入口，页面不再直接导入 Mock Repository
 - [x] T003b App 启动身份与健康 API 统一使用后端 Session，微信登录成功后复用客户 Session
 - [x] T003c 清理前端 Mock 登录命名：App Store 统一调用 `AuthProvider.login()`，页面只依赖 API Repository 入口
@@ -102,4 +103,4 @@
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-`pnpm run typecheck`、H5/Admin production build、`pnpm test:consultation`（8/8）与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务。
+`pnpm run typecheck`、H5/Admin production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务。

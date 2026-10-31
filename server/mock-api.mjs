@@ -48,6 +48,11 @@ const initialState = {
     { id: 'cat-09', name: '亚健康管理', enabled: true, sort: 9 }
   ],
   contentSettings: { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。' },
+  educationArticles: [
+    { id: 'edu-001', title: '认识血糖与日常饮食', category: '血糖管理', summary: '了解日常饮食与血糖波动的关系。', body: '规律饮食、均衡搭配并结合个人健康状况，是日常血糖管理的基础。', status: 'published', publishedAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', sort: 1 },
+    { id: 'edu-002', title: '如何看懂体检报告中的血脂指标', category: '指标解读', summary: '用简单方式认识总胆固醇、LDL-C 等常见指标。', body: '指标应结合参考范围、既往趋势与专业人员建议综合理解。', status: 'published', publishedAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z', sort: 2 },
+    { id: 'edu-003', title: '睡眠、压力与体重管理', category: '生活方式', summary: '认识睡眠与压力对日常健康管理的影响。', body: '稳定作息、适度运动和持续记录有助于发现个人健康趋势。', status: 'draft', updatedAt: '2026-10-03T00:00:00.000Z', sort: 3 }
+  ],
   profiles: { 'u-001': { id: 'hp-001', userId: 'u-001', gender: '女', birthYear: '1992', heightCm: '165', medicalHistory: '', allergies: '', medications: '', lifestyle: '久坐，偶尔运动', updatedAt: new Date().toISOString() } },
   reports: { 'u-001': [{ id: 'r-001', name: '2024年度体检报告.pdf', date: '2024-10-10', status: '解析成功', source: '体检报告' }, { id: 'r-002', name: '2023年度体检报告.pdf', date: '2023-09-12', status: '解析成功', source: '体检报告' }] },
   observations: { 'u-001': [
@@ -82,6 +87,7 @@ const sqliteStore = databaseMode === 'json' ? null : await openSqliteStore({ dbF
 let state = loadState()
 state.contentSettings ||= structuredClone(initialState.contentSettings)
 state.consultantCategories ||= structuredClone(initialState.consultantCategories)
+state.educationArticles ||= structuredClone(initialState.educationArticles)
 
 function loadState() {
   try { return { ...initialState, ...(sqliteStore ? sqliteStore.load() : JSON.parse(fs.readFileSync(dataFile, 'utf8'))) } } catch { return structuredClone(initialState) }
@@ -238,6 +244,23 @@ const server = http.createServer(async (req, res) => {
     state.contentSettings = { resultDisclaimer: settings.resultDisclaimer.trim(), resultConsultationTitle: settings.resultConsultationTitle.trim(), resultConsultationDescription: settings.resultConsultationDescription.trim() }
     persist()
     return send(res, 200, { code: 0, data: state.contentSettings })
+  }
+  if (route === '/api/education/articles' && req.method === 'GET') {
+    const actor = actorFromRequest(req)
+    const articles = actor?.role === 'admin' ? (state.educationArticles || []) : (state.educationArticles || []).filter(item => item.status === 'published')
+    return send(res, 200, { code: 0, data: articles.sort((a, b) => a.sort - b.sort) })
+  }
+  if (route === '/api/education/articles' && req.method === 'PUT') {
+    requireActor(req, ['admin'])
+    const articles = await readBody(req)
+    if (!Array.isArray(articles) || articles.length > 100) { const error = new Error('卫教文章格式无效'); error.status = 400; throw error }
+    state.educationArticles = articles.map((item, index) => {
+      const title = String(item?.title || '').trim(); const category = String(item?.category || '').trim(); const summary = String(item?.summary || '').trim(); const body = String(item?.body || '').trim()
+      if (!title || !category || !body || !['draft', 'published'].includes(item?.status)) { const error = new Error('卫教文章内容不完整'); error.status = 400; throw error }
+      const updatedAt = new Date().toISOString(); const publishedAt = item.status === 'published' ? (item.publishedAt || updatedAt) : undefined
+      return { id: String(item.id || `edu-${randomUUID().slice(0, 8)}`), title, category, summary, body, status: item.status, ...(publishedAt ? { publishedAt } : {}), updatedAt, sort: Number.isInteger(item.sort) ? item.sort : index + 1 }
+    })
+    persist(); return send(res, 200, { code: 0, data: state.educationArticles })
   }
   if (route === '/api/plans' && req.method === 'GET') return send(res, 200, { code: 0, data: state.plans })
   if (route === '/api/plans' && req.method === 'PUT') {

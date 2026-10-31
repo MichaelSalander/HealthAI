@@ -1,5 +1,5 @@
 import { mockObservations, mockPlans, mockReports, mockUser } from './data'
-import type { AIRepository, AuthProvider, CommerceRepository, ConsultantRepository, ContentRepository, HealthRepository, HomeEntry, ContentSettings } from '../api/contracts'
+import type { AIRepository, AuthProvider, CommerceRepository, ConsultantRepository, ContentRepository, EducationArticle, HealthRepository, HomeEntry, ContentSettings } from '../api/contracts'
 import type { Consultant, HealthProfile, HealthReport, Observation, ReportExtraction, ServicePlan } from '../../types/domain'
 import type { DemoSession } from '../../types/consultation'
 import { consultationRepository } from '../api/consultation'
@@ -77,9 +77,13 @@ const fallbackHomeEntries: HomeEntry[] = [
   { id: 'consultant', title: '找健康管理师', subtitle: '专业解读与指导', route: '/pages/consultants/index', enabled: true, sort: 5 }
 ]
 const fallbackContentSettings: ContentSettings = { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。' }
+const fallbackEducationArticles: EducationArticle[] = [
+  { id: 'edu-001', title: '认识血糖与日常饮食', category: '血糖管理', summary: '了解日常饮食与血糖波动的关系。', body: '规律饮食、均衡搭配并结合个人健康状况，是日常血糖管理的基础。', status: 'published', publishedAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', sort: 1 },
+  { id: 'edu-002', title: '如何看懂体检报告中的血脂指标', category: '指标解读', summary: '用简单方式认识总胆固醇、LDL-C 等常见指标。', body: '指标应结合参考范围、既往趋势与专业人员建议综合理解。', status: 'published', publishedAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z', sort: 2 }
+]
 async function fetchJson<T>(path: string, fallback: T): Promise<T> {
   return hasConfiguredApi ? apiRequestRequired<T>(path) : apiRequest(path, fallback)
 }
-export const contentRepository: ContentRepository = { async listHomeEntries() { return fetchJson<HomeEntry[]>('/home-entries', fallbackHomeEntries) }, async listContentSettings() { return fetchJson<ContentSettings>('/content-settings', fallbackContentSettings) } }
+export const contentRepository: ContentRepository = { async listHomeEntries() { return fetchJson<HomeEntry[]>('/home-entries', fallbackHomeEntries) }, async listContentSettings() { return fetchJson<ContentSettings>('/content-settings', fallbackContentSettings) }, async listEducationArticles() { return fetchJson<EducationArticle[]>('/education/articles', fallbackEducationArticles) } }
 export const aiRepository: AIRepository = { async generateReport() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').AIHealthReport>('/health/ai-reports/generate', { method: 'POST', body: JSON.stringify({}) }, session) } }
 export const commerceRepository: CommerceRepository = { async listPlans() { return fetchJson<ServicePlan[]>('/plans', mockPlans) }, async listOrders() { const remote = await consultationRepository.orders(); orders = remote; writeStorage('healthai_orders', orders); return remote }, async createMockOrder(plan: ServicePlan) { const order = await consultationRepository.createOrder(plan); const paid = await consultationRepository.mockPay(order.id); orders = [paid, ...orders.filter(item => item.id !== paid.id)]; writeStorage('healthai_orders', orders); return paid } }

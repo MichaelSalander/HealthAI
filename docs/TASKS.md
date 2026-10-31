@@ -86,6 +86,7 @@
 - [x] T449 Admin 服务方案页真实化：价格、等级、周期、说明与启用状态读取/保存后端 API
 - [x] T450 健管师分类配置真实化：9 大分类 API、Admin 编辑保存与客户端目录读取
 - [x] T451 Admin 用户汇总真实化：客户/健管师、健康资料数量、咨询关系与状态读取后端 API
+- [x] T452 卫教内容真实化：后端文章持久化、Admin 编辑/发布/下架、客户端读取已发布内容
 - [x] T003a C 端页面统一依赖 `services/api/repositories` 入口，页面不再直接导入 Mock Repository
 - [x] T003b App 启动身份与健康 API 统一使用后端 Session，微信登录成功后复用客户 Session
 - [x] T003c 清理前端 Mock 登录命名：App Store 统一调用 `AuthProvider.login()`，页面只依赖 API Repository 入口

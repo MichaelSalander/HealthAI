@@ -1,5 +1,6 @@
 type NavigateOptions = { url: string }
 type ToastOptions = { title: string }
+type ModalOptions = { title: string; content: string; showCancel?: boolean }
 type RequestOptions = {
   url: string
   method?: string
@@ -16,6 +17,7 @@ type UniRuntime = {
   reLaunch: (options: NavigateOptions) => unknown
   navigateBack?: () => unknown
   showToast?: (options: ToastOptions) => unknown
+  showModal?: (options: ModalOptions) => unknown
   getStorageSync?: (key: string) => unknown
   setStorageSync?: (key: string, value: string) => unknown
   [key: string]: unknown
@@ -50,6 +52,11 @@ export const uniApi = {
     const nativeShowToast = runtime.showToast
     if (nativeShowToast) return nativeShowToast.call(runtime, options)
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('healthai-toast', { detail: options.title }))
+  },
+  showModal(options: ModalOptions) {
+    const nativeShowModal = runtime.showModal
+    if (nativeShowModal) return nativeShowModal.call(runtime, options)
+    if (typeof window !== 'undefined') window.alert(`${options.title}\n\n${options.content}`)
   },
   getStorageSync(key: string) {
     return runtime.getStorageSync?.call(runtime, key)

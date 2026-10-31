@@ -137,6 +137,7 @@
 - `POST /notifications/:id/read` → `Notification`
 - `GET /health-check-centers` → `HealthCheckCenter[]`
 - `GET /education/articles` → `EducationArticle[]`
+- `PUT /education/articles` (admin) → `EducationArticle[]`，保存草稿/发布状态；客户端只读取已发布内容
 
 ## Provider 约束
 WechatAuthProvider、PaymentProvider、OcrProvider、AiProvider、ImProvider 均通过 interface 注入；Mock provider 不得改变正式返回结构。

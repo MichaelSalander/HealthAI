@@ -100,6 +100,17 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(request.body.data.status, 'queued')
 
   const admin = await login('admin')
+  const adminEducation = await api('/api/v1/education/articles', { headers: auth(admin) })
+  assert.equal(adminEducation.response.status, 200)
+  assert.ok(adminEducation.body.data.some(item => item.status === 'draft'))
+  const publicEducation = await api('/api/v1/education/articles')
+  assert.equal(publicEducation.response.status, 200)
+  assert.ok(publicEducation.body.data.every(item => item.status === 'published'))
+  const educationPayload = [...publicEducation.body.data, { id: 'edu-integration', title: '测试卫教文章', category: '测试', summary: '测试摘要', body: '测试正文', status: 'published', sort: 99 }]
+  const savedEducation = await api('/api/v1/education/articles', { method: 'PUT', headers: auth(admin), body: JSON.stringify(educationPayload) })
+  assert.equal(savedEducation.response.status, 200)
+  const publicEducationAfterSave = await api('/api/v1/education/articles')
+  assert.ok(publicEducationAfterSave.body.data.some(item => item.id === 'edu-integration'))
   const users = await api('/api/v1/admin/users', { headers: auth(admin) })
   assert.equal(users.response.status, 200)
   assert.ok(users.body.data.some(item => item.id === 'u-001' && item.role === 'customer'))

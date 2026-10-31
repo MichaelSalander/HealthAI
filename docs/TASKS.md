@@ -74,6 +74,9 @@
 - [x] T437 Admin 健管师仪表板改为实时 API：移除静态客户数字与假消息，显示派单、在线状态与通知数据
 - [x] T438 局域网设备验收模式：`HEALTHAI_LAN_HOST` 让 H5／API／Admin 使用局域网地址与 `0.0.0.0` 绑定
 - [x] T439 GitHub Pages H5 工作流：复用现有部署流程，生产 API URL 缺失时构建失败，配置 Secret 后自动发布静态客户端
+- [x] T440 生产多来源 CORS：客户端与 Admin 域名可用逗号分隔白名单，并按请求 Origin 返回
+- [x] T441 GitHub Pages 同步发布 Admin：Admin 构建产物发布到 `/HealthAI/admin/`
+- [x] T442 生产部署探针与验收脚本：`/healthz`、`/api/v1/status` 与可选 Admin 登录验证
 - [x] T003a C 端页面统一依赖 `services/api/repositories` 入口，页面不再直接导入 Mock Repository
 - [x] T003b App 启动身份与健康 API 统一使用后端 Session，微信登录成功后复用客户 Session
 - [x] T003c 清理前端 Mock 登录命名：App Store 统一调用 `AuthProvider.login()`，页面只依赖 API Repository 入口
@@ -99,4 +102,4 @@
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-`pnpm run typecheck` 与 H5 production build 已通过。当前可用 `pnpm run preview:h5` 提供 `dist/` 进行 UI 预览。
+`pnpm run typecheck`、H5/Admin production build、`pnpm test:consultation`（8/8）与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务。

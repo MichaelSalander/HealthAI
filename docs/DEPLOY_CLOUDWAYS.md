@@ -51,14 +51,14 @@ HEALTHAI_DB_SSL=true
 # HEALTHAI_DB=sqlite
 # HEALTHAI_DB_FILE=/home/应用用户/healthai-data/healthai.sqlite
 HEALTHAI_UPLOAD_DIR=/home/应用用户/healthai-data/uploads
-HEALTHAI_OPERATOR_ACCOUNTS_JSON=[{"id":"admin-001","role":"admin","name":"管理员","username":"admin","password":"请替换为强密码"},{"id":"c-101","role":"consultant","name":"陈晨","username":"c-101","password":"请替换为强密码"}]
+HEALTHAI_OPERATOR_ACCOUNTS_JSON=[{"id":"admin-001","role":"admin","name":"管理员","username":"admin","passwordHash":"scrypt$..."},{"id":"c-101","role":"consultant","name":"陈晨","username":"c-101","passwordHash":"scrypt$..."}]
 WECHAT_APP_ID=真实小程序AppID
 WECHAT_APP_SECRET=真实小程序AppSecret
 WECHAT_TEST_MODE=false
 ```
 
 生产环境禁止使用 `touristappid`、`WECHAT_TEST_MODE=true` 或 `demo-login`。
-Admin 与健管师工作台使用后端 `operator-login`，账号通过 `HEALTHAI_OPERATOR_ACCOUNTS_JSON` 注入；不要把账号密码写入前端环境变量或提交到代码库。
+Admin 与健管师工作台使用后端 `operator-login`，账号通过 `HEALTHAI_OPERATOR_ACCOUNTS_JSON` 注入；支持 `passwordHash`（scrypt），不要把账号密码写入前端环境变量或提交到代码库。本地旧配置的 `password` 仍可用，但正式环境应移除。
 
 ## 3. 启动 API
 

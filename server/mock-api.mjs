@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { verifyPassword } from './passwords.mjs'
 import { handleWorkflow } from './consultation-workflow.mjs'
 import { openSqliteStore } from './storage/sqlite-store.mjs'
 import { openPostgresStore } from './storage/postgres-store.mjs'
@@ -31,7 +32,7 @@ function loadOperatorAccounts() {
   if (raw) {
     try {
       const accounts = JSON.parse(raw)
-      if (Array.isArray(accounts)) return accounts.filter(item => item && ['admin', 'consultant'].includes(item.role) && item.username && item.password && item.id)
+      if (Array.isArray(accounts)) return accounts.filter(item => item && ['admin', 'consultant'].includes(item.role) && item.username && (item.password || item.passwordHash) && item.id)
     } catch { throw new Error('HEALTHAI_OPERATOR_ACCOUNTS_JSON 格式无效') }
   }
   if (isProduction) return []
@@ -182,7 +183,7 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/auth/operator-login' && req.method === 'POST') {
     const body = await readBody(req)
     if (!['admin', 'consultant'].includes(body.role) || typeof body.username !== 'string' || typeof body.password !== 'string') return send(res, 400, { code: 400, message: '登录信息不完整' })
-    const account = operatorAccounts.find(item => item.role === body.role && item.username === body.username && secretTextEqual(item.password, body.password))
+    const account = operatorAccounts.find(item => item.role === body.role && item.username === body.username && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
     if (!account) return send(res, operatorAccounts.length ? 401 : 503, { code: operatorAccounts.length ? 401 : 503, message: operatorAccounts.length ? '用户名或密码错误' : '尚未配置运营人员账号' })
     const actor = { id: account.id, role: account.role, name: account.name || account.username }
     return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds } })

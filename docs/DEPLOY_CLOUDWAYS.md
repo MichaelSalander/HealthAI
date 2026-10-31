@@ -60,6 +60,14 @@ WECHAT_TEST_MODE=false
 生产环境禁止使用 `touristappid`、`WECHAT_TEST_MODE=true` 或 `demo-login`。
 Admin 与健管师工作台使用后端 `operator-login`，账号通过 `HEALTHAI_OPERATOR_ACCOUNTS_JSON` 注入；支持 `passwordHash`（scrypt），不要把账号密码写入前端环境变量或提交到代码库。本地旧配置的 `password` 仍可用，但正式环境应移除。
 
+产生密码哈希：
+
+```bash
+pnpm run hash:operator
+```
+
+把命令输出的 `scrypt$...` 填入对应账号的 `passwordHash` 字段；该命令不会修改项目文件。
+
 ## 3. 启动 API
 
 在项目根目录执行：

@@ -121,6 +121,7 @@
 - [x] T465 发布验收命令：`pnpm run verify:release` 统一执行环境、类型、API、生产就绪、H5 与 Admin 检查
 - [x] T466 PostgreSQL 持久化适配：正式环境可通过 `HEALTHAI_DB=postgres` 与 `HEALTHAI_DATABASE_URL` 使用云端数据库，本地 SQLite 行为保持不变
 - [x] T467 运营账号密码哈希：Admin／健管师登录支持 scrypt `passwordHash`，正式环境不必保存明文密码
+- [x] T468 运营账号配置工具：提供 `pnpm run hash:operator` 生成正式环境账号哈希
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 
 ## 验收命令

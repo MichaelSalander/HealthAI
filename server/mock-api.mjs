@@ -123,6 +123,10 @@ function requireActor(req, roles = []) {
   if (roles.length && !roles.includes(actor.role)) { const error = new Error('没有权限执行此操作'); error.status = 403; throw error }
   return actor
 }
+function requireHealthDataConsent(actor) {
+  const active = (state.consents?.[actor.id] || []).some(item => item.consentType === 'health_data' && item.status === 'granted')
+  if (!active) { const error = new Error('请先完成健康资料授权'); error.status = 403; error.code = 'HEALTH_DATA_CONSENT_REQUIRED'; throw error }
+}
 async function readBody(req) {
   const chunks = []; let total = 0; const maxBytes = 30 * 1024 * 1024
   for await (const chunk of req) { total += chunk.length; if (total > maxBytes) { const error = new Error('请求文件不能超过 20MB'); error.status = 413; throw error } chunks.push(chunk) }
@@ -312,7 +316,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 201, { code: 0, data: record })
   }
   if (route === '/api/health/profile' && req.method === 'PUT') {
-    const actor = requireActor(req, ['customer']); const body = await readBody(req); const id = actor.id
+    const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const body = await readBody(req); const id = actor.id
     state.profiles[id] = { ...(state.profiles[id] || {}), ...body, userId: id, updatedAt: new Date().toISOString() }; persist()
     return send(res, 200, { code: 0, data: state.profiles[id] })
   }
@@ -330,7 +334,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { code: 0, data: items })
   }
   if (route === '/api/health/observations' && req.method === 'POST') {
-    const actor = requireActor(req, ['customer']); const id = actor.id; const body = await readBody(req); const item = { ...body, id: `o-${Date.now()}`, measuredAt: body.measuredAt || new Date().toISOString().slice(0, 10) }
+    const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const id = actor.id; const body = await readBody(req); const item = { ...body, id: `o-${Date.now()}`, measuredAt: body.measuredAt || new Date().toISOString().slice(0, 10) }
     state.observations[id] = [item, ...(state.observations[id] || [])]; persist(); return send(res, 201, { code: 0, data: item })
   }
   if (route === '/api/health/blood-test-status' && req.method === 'GET') {
@@ -342,7 +346,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { code: 0, data: (state.reports[actor.id] || []).map(reportView) })
   }
   if (route === '/api/health/reports' && req.method === 'POST') {
-    const actor = requireActor(req, ['customer']); const id = actor.id; const body = await readBody(req)
+    const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const id = actor.id; const body = await readBody(req)
     const fileName = typeof body.fileName === 'string' && body.fileName.trim() ? path.basename(body.fileName.trim()) : '体检报告.pdf'
     const kind = body.kind === 'blood_test' ? 'blood_test' : 'general'
     const fileBase64 = typeof body.fileBase64 === 'string' ? body.fileBase64 : ''
@@ -434,7 +438,7 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer', 'consultant', 'admin']); const id = actor.id; const report = await readBody(req); state.aiReports[id] = [{ ...report, generatedBy: actor.id }, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: state.aiReports[id][0] })
   }
   return send(res, 404, { code: 404, message: 'Not Found' })
-  } catch (error) { return send(res, error.status || (error instanceof SyntaxError ? 400 : 500), { code: error.status || 500, message: error.status ? error.message : '请求处理失败，请重试' }) }
+  } catch (error) { return send(res, error.status || (error instanceof SyntaxError ? 400 : 500), { code: error.code || error.status || 500, message: error.status ? error.message : '请求处理失败，请重试' }) }
 })
 
 server.listen(Number(process.env.PORT || 8787), process.env.HOST || '127.0.0.1', () => console.log(`HealthAI API listening on http://${process.env.HOST || '127.0.0.1'}:${process.env.PORT || 8787} (db=${databaseMode})`))

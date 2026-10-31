@@ -7,7 +7,7 @@ const saving = ref(false)
 const uniApi = (globalThis as any).uni
 const form = reactive({ gender: '', birthYear: '', heightCm: '', medicalHistory: '', allergies: '', medications: '', lifestyle: '' })
 onMounted(async () => Object.assign(form, await healthRepository.getProfile()))
-const save = async () => { saving.value = true; await healthRepository.saveProfile(form); saving.value = false; uni.showToast({ title: '健康档案已保存' }); setTimeout(() => uni.navigateBack(), 500) }
+const save = async () => { saving.value = true; try { await healthRepository.saveProfile(form); uni.showToast({ title: '健康档案已保存' }); setTimeout(() => uni.navigateBack(), 500) } catch (error) { const message = (error as Error).message; uni.showToast({ title: message }); if (message.includes('授权')) uniApi.navigateTo({ url: '/pages/health/consent' }) } finally { saving.value = false } }
 </script>
 <template>
   <view class="page">

@@ -101,5 +101,6 @@ export const consultationRepository = {
   async readRoom(id: string, messageId: string, session?: DemoSession) { return request(`/conversations/${id}/read`, 'POST', { messageId }, session || await this.customer()) },
   async completeRoom(id: string, summary: string, session: DemoSession) { return request<ServiceRecord>(`/conversations/${id}/complete`, 'POST', { summary }, session) },
   async startVoice(conversationId: string, session?: DemoSession) { return request<VoiceSession>('/voice-sessions', 'POST', { conversationId }, session || await this.customer()) },
+  async voiceSessions(conversationId: string, session?: DemoSession) { return request<VoiceSession | null>(`/voice-sessions?conversationId=${encodeURIComponent(conversationId)}`, 'GET', undefined, session || await this.customer()) },
   async voiceAction(id: string, action: 'accept' | 'end' | 'fail', session?: DemoSession) { return request<VoiceSession>(`/voice-sessions/${id}/${action}`, 'POST', {}, session || await this.customer()) },
 }

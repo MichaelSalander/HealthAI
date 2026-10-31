@@ -139,6 +139,11 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     return participant
   }
   if (route === '/api/voice-sessions' && method === 'POST') { requireRole('customer', 'consultant'); const room = roomById(body.conversationId); if (!room || !roomVisible(room)) fail('无权发起语音', 403); const voice = { id: randomUUID(), conversationId: room.id, initiatorId: actor.id, status: 'calling', startedAt: stamp() }; db.voiceSessions.unshift(voice); const recipientId = actor.id === room.userId ? room.consultantId : room.userId; const recipientRole = actor.role === 'customer' ? 'consultant' : 'customer'; notifyResource(recipientRole, recipientId, `${actor.name} 发起了语音咨询`, 'voice_session', voice.id); return voice }
+  if (route === '/api/voice-sessions' && method === 'GET') {
+    requireRole('customer', 'consultant'); const room = roomById(query.get('conversationId') || '')
+    if (!room || !roomVisible(room)) fail('无权查看语音状态', 403)
+    return db.voiceSessions.filter(item => item.conversationId === room.id).sort((a, b) => Date.parse(b.startedAt || '') - Date.parse(a.startedAt || ''))[0] || null
+  }
   const voiceAction = route.match(/^\/api\/voice-sessions\/([^/]+)\/(accept|end|fail)$/)
   if (voiceAction && method === 'POST') { requireRole('customer', 'consultant'); const voice = db.voiceSessions.find(item => item.id === voiceAction[1]); if (!voice) fail('语音会话不存在', 404); const room = roomById(voice.conversationId); if (!room || !roomVisible(room)) fail('无权操作语音', 403); if (voiceAction[2] === 'accept') { voice.status = 'connected'; voice.connectedAt = stamp() } else { voice.status = voiceAction[2] === 'fail' ? 'failed' : 'ended'; voice.endedAt = stamp(); voice.durationSec = voice.connectedAt ? Math.max(0, Math.floor((Date.parse(voice.endedAt) - Date.parse(voice.connectedAt)) / 1000)) : 0 } return voice }
   if (route === '/api/consultations/queue' && method === 'GET') {

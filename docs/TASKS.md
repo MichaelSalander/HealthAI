@@ -119,6 +119,7 @@
 - [x] T463 正式微信小程序构建：通过环境变量注入 AppID，构建后自动恢复测试 manifest
 - [x] T464 生产就绪探针：验证上传目录、运营账号与微信配置后才允许部署验收通过；`pnpm test:production` 覆盖未配置/已配置两种状态
 - [x] T465 发布验收命令：`pnpm run verify:release` 统一执行环境、类型、API、生产就绪、H5 与 Admin 检查
+- [x] T466 PostgreSQL 持久化适配：正式环境可通过 `HEALTHAI_DB=postgres` 与 `HEALTHAI_DATABASE_URL` 使用云端数据库，本地 SQLite 行为保持不变
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 
 ## 验收命令

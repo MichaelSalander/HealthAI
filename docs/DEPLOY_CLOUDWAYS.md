@@ -1,6 +1,6 @@
 # HealthAI Cloudways 部署手册
 
-本文件把本地可运行版本部署到 Cloudways 上的 Node.js 应用。正式环境必须使用独立数据库、对象存储和微信/支付 Provider；当前 SQLite 与 Mock Provider 仅适合第一阶段验收。
+本文件把本地可运行版本部署到 Cloudways 上的 Node.js 应用。正式环境应使用独立 PostgreSQL 数据库、对象存储和微信/支付 Provider；SQLite 可用于单机过渡验收，Mock Provider 仅适合第一阶段验收。
 
 ## 1. 构建
 
@@ -44,8 +44,12 @@ HEALTHAI_SESSION_SECRET=长度至少32位的随机值
 HEALTHAI_SESSION_TTL_SECONDS=86400
 # 多个前端来源用逗号分隔，例如 C 端与 Admin 各一个域名
 HEALTHAI_CORS_ORIGIN=https://你的客户端域名,https://你的Admin域名
-HEALTHAI_DB=sqlite
-HEALTHAI_DB_FILE=/home/应用用户/healthai-data/healthai.sqlite
+HEALTHAI_DB=postgres
+HEALTHAI_DATABASE_URL=postgresql://数据库用户:数据库密码@数据库主机:5432/healthai
+HEALTHAI_DB_SSL=true
+# 使用 SQLite 单机过渡时才设置以下两项：
+# HEALTHAI_DB=sqlite
+# HEALTHAI_DB_FILE=/home/应用用户/healthai-data/healthai.sqlite
 HEALTHAI_UPLOAD_DIR=/home/应用用户/healthai-data/uploads
 HEALTHAI_OPERATOR_ACCOUNTS_JSON=[{"id":"admin-001","role":"admin","name":"管理员","username":"admin","password":"请替换为强密码"},{"id":"c-101","role":"consultant","name":"陈晨","username":"c-101","password":"请替换为强密码"}]
 WECHAT_APP_ID=真实小程序AppID
@@ -93,6 +97,15 @@ VITE_API_BASE_URL=https://你的API域名/api/v1
 
 重新构建前端后再发布，不能在浏览器端暴露 AppSecret、支付密钥或 LLM Key。
 
+## 5. 数据库模式
+
+后端支持两种持久化模式：
+
+- `HEALTHAI_DB=sqlite`：本地开发或单机过渡环境，资料保存为 SQLite 文件。
+- `HEALTHAI_DB=postgres`：正式环境，使用 `HEALTHAI_DATABASE_URL` 连接 PostgreSQL；启动时自动创建 `healthai_state` 表，并以串行写入保存状态快照。
+
+正式环境若选择 PostgreSQL，启动时无法连接数据库会直接失败，不会悄悄退回 JSON 或 SQLite。数据库密码只能放在 Cloudways 环境变量，不能提交到 Git。
+
 ## 6. GitHub Pages（仅 H5 静态前端）
 
 仓库已提供 `.github/workflows/deploy-pages.yml`。它会同时发布 C 端与 Admin，Admin 位于 `/HealthAI/admin/`。在 GitHub 仓库 Settings → Secrets and variables → Actions 新增：
@@ -103,7 +116,7 @@ HEALTHAI_API_BASE_URL=https://你的API域名/api/v1
 
 启用 Pages 的 GitHub Actions 来源后，推送 `master` 会自动构建并发布 H5。Workflow 会拒绝空 API URL，避免把 localhost 构建发布给真实用户。GitHub Pages 只托管前端，不能替代 API、数据库、上传文件与 WebSocket/语音服务。
 
-## 5. 上线前检查
+## 7. 上线前检查
 
 - 关闭测试微信登录与所有 demo 账号入口
 - 使用独立 PostgreSQL/MySQL 替换 SQLite

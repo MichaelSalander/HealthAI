@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { handleWorkflow } from './consultation-workflow.mjs'
 import { openSqliteStore } from './storage/sqlite-store.mjs'
+import { openPostgresStore } from './storage/postgres-store.mjs'
 import { exchangeMiniProgramCode, stableWechatUserId } from './wechat-auth.mjs'
 import { createAiProvider } from './providers/ai-provider.mjs'
 import { createOcrProvider } from './providers/ocr-provider.mjs'
 
 const dataFile = process.env.HEALTHAI_DATA_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'mock-db.json')
 const databaseFile = process.env.HEALTHAI_DB_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'healthai.sqlite')
+const databaseUrl = process.env.HEALTHAI_DATABASE_URL
 const uploadRoot = process.env.HEALTHAI_UPLOAD_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads')
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
@@ -88,7 +90,11 @@ const initialState = {
   notifications: []
 }
 const databaseMode = process.env.HEALTHAI_DB || 'sqlite'
-const sqliteStore = databaseMode === 'json' ? null : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
+const storageStore = databaseMode === 'json'
+  ? null
+  : databaseMode === 'postgres'
+    ? await openPostgresStore({ connectionString: databaseUrl, seedFile: dataFile, ssl: process.env.HEALTHAI_DB_SSL === 'true' })
+    : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
 state.contentSettings = { ...structuredClone(initialState.contentSettings), ...(state.contentSettings || {}) }
 state.contentSettings.metricExplanations ||= structuredClone(initialState.contentSettings.metricExplanations)
@@ -97,9 +103,9 @@ state.healthCenters ||= structuredClone(initialState.healthCenters)
 state.educationArticles ||= structuredClone(initialState.educationArticles)
 
 function loadState() {
-  try { return { ...initialState, ...(sqliteStore ? sqliteStore.load() : JSON.parse(fs.readFileSync(dataFile, 'utf8'))) } } catch { return structuredClone(initialState) }
+  try { return { ...initialState, ...(storageStore ? storageStore.load() : JSON.parse(fs.readFileSync(dataFile, 'utf8'))) } } catch { return structuredClone(initialState) }
 }
-function persist() { if (sqliteStore) sqliteStore.save(state); else fs.writeFileSync(dataFile, JSON.stringify(state, null, 2), 'utf8') }
+function persist() { if (storageStore) return storageStore.save(state); fs.writeFileSync(dataFile, JSON.stringify(state, null, 2), 'utf8') }
 function base64url(value) { return Buffer.from(value).toString('base64url') }
 function issueToken(actor) {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' })); const payload = base64url(JSON.stringify({ sub: actor.id, role: actor.role, name: actor.name, exp: Math.floor(Date.now() / 1000) + sessionTtlSeconds }))
@@ -497,3 +503,11 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.listen(Number(process.env.PORT || 8787), process.env.HOST || '127.0.0.1', () => console.log(`HealthAI API listening on http://${process.env.HOST || '127.0.0.1'}:${process.env.PORT || 8787} (db=${databaseMode})`))
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, async () => {
+    server.close(async () => {
+      try { await storageStore?.close?.(); process.exit(0) } catch (error) { console.error('[healthai] shutdown persistence failed:', error); process.exit(1) }
+    })
+  })
+}

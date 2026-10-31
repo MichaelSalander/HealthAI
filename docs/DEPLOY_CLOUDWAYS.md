@@ -62,10 +62,10 @@ curl https://你的API域名/api/v1/status
 两个请求都应该返回 `status: ok`。部署后也可以用项目内置脚本验证：
 
 ```bash
-HEALTHAI_VERIFY_BASE_URL=https://你的API域名 pnpm run verify:production
+HEALTHAI_VERIFY_BASE_URL=https://你的API域名 HEALTHAI_VERIFY_ORIGIN=https://你的客户端域名 pnpm run verify:production
 ```
 
-如果同时设置 `HEALTHAI_VERIFY_USERNAME` 与 `HEALTHAI_VERIFY_PASSWORD`，脚本还会验证 Admin 登录。
+脚本会验证健康探针、API 状态、未登录资料接口必须返回 401，以及可选的 CORS 来源。若同时设置 `HEALTHAI_VERIFY_USERNAME` 与 `HEALTHAI_VERIFY_PASSWORD`，还会验证 Admin 登录。
 
 ## 4. 反向代理
 

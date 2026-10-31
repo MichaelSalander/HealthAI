@@ -40,7 +40,15 @@ jobs:
       - name: Validate production API configuration
         env:
           HEALTHAI_API_BASE_URL: ${{ secrets.HEALTHAI_API_BASE_URL }}
-        run: test -n "$HEALTHAI_API_BASE_URL"
+        run: |
+          test -n "$HEALTHAI_API_BASE_URL"
+          case "$HEALTHAI_API_BASE_URL" in
+            https://*) ;;
+            *) echo "HEALTHAI_API_BASE_URL 必须使用 https:// 的公开 API 地址"; exit 1 ;;
+          esac
+          case "$HEALTHAI_API_BASE_URL" in
+            *localhost*|*127.0.0.1*|*0.0.0.0*) echo "禁止将本地地址发布到 GitHub Pages"; exit 1 ;;
+          esac
 
       - name: Build uni-app H5
         env:

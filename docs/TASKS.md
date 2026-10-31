@@ -41,7 +41,7 @@
 - [ ] 真实语音 Provider
 - [ ] 健管师第 6 项与公司介绍第 2 项需求（待补定义）
 - [x] T405a C 端健康档案基础资料采集：Repository 持久化、档案入口与表单保存
-- [ ] T406 Mock API：Profile/Consent/Report Extraction/Observation Confirm/AI Report Contract
+- [x] T406 Mock API：Profile/Consent/Report Extraction/Observation Confirm/AI Report Contract
 - [x] T406a 本地持久化 API：Profile、Reports、Observations、AI Reports；资料写入 `server/mock-db.json`
 - [x] T406b API v1 基础入口：健康检查、Mock Login、健康资料 API 与外部 Provider `.env.example`
 - [x] T406c 本地正式 API 持久化层：SQLite Repository，前端继续统一使用 `/api/v1`
@@ -60,6 +60,7 @@
 - [x] T456 健管师资料时间线：报告待确认/解析异常/指标变更统一返回并在 Web 与手机端展示
 - [x] T457 指标基础解释 CMS：Admin 可配置指标说明，客户健康结果通过 Content Repository 读取
 - [x] T458 报告解析异常闭环：保留失败报告与错误原因，客户可重新解析，确认前不写入健康指标
+- [x] T459 生产部署验证加强：验证健康探针、未授权 401、CORS 白名单与运营账号登录，并禁止 GitHub Pages 使用 localhost/HTTP API
 - [x] T406j AI 结果由后端生成：仅基于已确认 Observation，保存来源版本并供客户/健管师读取
 - [x] T423 客户订单持久化：方案下单、SQLite 保存、Mock Payment Success 与订单查询均走 API
 - [x] T406k API Bearer Token 改为服务器签名并带过期时间，服务重启后仍可验证；篡改 Token 返回 401

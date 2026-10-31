@@ -7,7 +7,7 @@ export interface ConsultantRepository { list(): Promise<Consultant[]> }
 export interface CommerceRepository { listPlans(): Promise<ServicePlan[]>; listOrders(): Promise<Order[]>; createMockOrder(plan: ServicePlan): Promise<Order> }
 export interface HomeEntry { id: string; title: string; subtitle: string; route: string; enabled: boolean; sort: number }
 export interface MetricExplanation { code: string; name: string; explanation: string; enabled: boolean; sort: number }
-export interface ContentSettings { resultDisclaimer: string; resultConsultationTitle: string; resultConsultationDescription: string; metricExplanations: MetricExplanation[] }
+export interface ContentSettings { companyTitle: string; companySubtitle: string; companyPhilosophy: string; privacyTitle: string; privacyDescription: string; resultDisclaimer: string; resultConsultationTitle: string; resultConsultationDescription: string; metricExplanations: MetricExplanation[] }
 export interface EducationArticle { id: string; title: string; category: string; summary: string; body: string; status: 'draft' | 'published'; publishedAt?: string; updatedAt: string; sort: number }
 export interface ContentRepository { listHomeEntries(): Promise<HomeEntry[]>; listContentSettings(): Promise<ContentSettings>; listEducationArticles(): Promise<EducationArticle[]> }
 export interface AIRepository { generateReport(observations: Observation[]): Promise<AIHealthReport> }

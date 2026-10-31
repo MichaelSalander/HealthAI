@@ -145,8 +145,8 @@
 - `GET /health-check-centers` → `HealthCheckCenter[]`
 - `GET /education/articles` → `EducationArticle[]`
 - `PUT /education/articles` (admin) → `EducationArticle[]`，保存草稿/发布状态；客户端只读取已发布内容
-- `GET /content-settings` → 结果文案与已启用的指标基础解释
-- `PUT /content-settings` (admin) → 保存结果文案与指标解释配置
+- `GET /content-settings` → 公司介绍、隐私说明、结果文案与已启用的指标基础解释
+- `PUT /content-settings` (admin) → 保存公司介绍、隐私说明、结果文案与指标解释配置
 
 ## Provider 约束
 WechatAuthProvider、PaymentProvider、OcrProvider、AiProvider、ImProvider 均通过 interface 注入；Mock provider 不得改变正式返回结构。

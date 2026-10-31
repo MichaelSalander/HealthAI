@@ -13,6 +13,15 @@ pnpm run build:h5
 cd console && pnpm install --frozen-lockfile && pnpm run build
 ```
 
+微信小程序正式构建时不要修改并提交 `src/manifest.json` 中的 AppID，使用本地环境变量注入：
+
+```powershell
+$env:WECHAT_MP_APPID = '真实小程序 AppID'
+pnpm run build:mp-weixin:production
+```
+
+该命令只在构建期间临时写入 AppID，完成后会恢复原始 manifest；缺少 AppID 或仍使用 `touristappid` 时会直接失败。
+
 将根目录 `dist/`（C 端 H5）和 `console/dist/`（Admin Web）分别发布到静态站点或 Nginx。API 不依赖前端开发服务器。
 
 C 端正式构建前复制 `.env.production.example` 为 `.env.production`，把 `VITE_API_BASE_URL` 换成正式 API 域名，并保持 `VITE_AUTH_MODE=wechat`；否则构建产物会继续使用本地演示登录逻辑。

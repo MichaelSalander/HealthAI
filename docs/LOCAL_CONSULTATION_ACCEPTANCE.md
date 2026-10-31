@@ -16,6 +16,8 @@ pnpm run dev:local
 
 微信小程序测试：使用 `pnpm run dev:mp-weixin` 生成微信开发者工具可打开的 `dist/dev/mp-weixin`；当前 `src/manifest.json` 配置为 `touristappid` 和 `urlCheck=false`，仅用于 UI／Mock 流程测试，不代表真实微信登录。
 
+正式小程序构建使用 `WECHAT_MP_APPID=<真实 AppID> pnpm run build:mp-weixin:production`（PowerShell 使用 `$env:WECHAT_MP_APPID='真实 AppID'`），正式构建会强制开启 `urlCheck`。
+
 - 验收入口：`http://localhost:5175/#/pages/demo/index`
 - 客户咨询入口：`http://localhost:5175/#/pages/consultants/booking`
 - 健管师手机端：`http://localhost:5175/#/pages/consultant/workbench`

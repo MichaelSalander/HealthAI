@@ -23,10 +23,12 @@ const save = async () => { saving.value = true; await healthRepository.saveProfi
       <view class="field"><text>过敏史</text><textarea v-model="form.allergies" placeholder="药物、食物或其他过敏信息" /></view>
       <view class="field"><text>目前用药</text><textarea v-model="form.medications" placeholder="正在使用的药物或保健品" /></view>
       <view class="field"><text>生活方式</text><textarea v-model="form.lifestyle" placeholder="作息、运动、饮食等情况" /></view>
+      <button class="consent-link" @click="uniApi.navigateTo({ url: '/pages/health/consent' })">查看健康资料授权</button>
       <PrimaryButton :label="saving ? '保存中…' : '保存健康档案'" @tap="save" />
     </view>
   </view>
 </template>
 <style scoped>
 .topbar{height:82rpx;display:flex;align-items:center;justify-content:space-between}.back{font-size:48rpx}.top-title{font-size:36rpx;font-weight:700}.intro{padding:24rpx 4rpx 20rpx}.intro-title{display:block;font-size:38rpx;font-weight:700;color:#15223a;margin-bottom:12rpx}.card{padding:28rpx}.section-title{font-size:30rpx;font-weight:700;color:#15223a}.block-title{margin-top:28rpx}.field{margin:24rpx 0;padding-bottom:18rpx;border-bottom:1rpx solid #edf2f1}.field text{display:block;color:#526563;font-size:26rpx}.field input,.field textarea{display:block;width:100%;margin-top:14rpx;font-size:29rpx;color:#15223a}.field textarea{height:92rpx;line-height:1.5}
+.consent-link{margin:20rpx 0;color:#08a990;background:transparent;font-size:24rpx}
 </style>

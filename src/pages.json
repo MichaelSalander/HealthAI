@@ -17,6 +17,7 @@
     { "path": "pages/health/index", "style": { "navigationBarTitleText": "我的健康" } },
     { "path": "pages/health/manual", "style": { "navigationBarTitleText": "手动记录" } },
     { "path": "pages/health/profile", "style": { "navigationBarTitleText": "健康档案" } },
+    { "path": "pages/health/consent", "style": { "navigationBarTitleText": "数据授权" } },
     { "path": "pages/report/index", "style": { "navigationBarTitleText": "体检报告" } },
     { "path": "pages/result/index", "style": { "navigationBarTitleText": "健康结果" } },
     { "path": "pages/consultants/index", "style": { "navigationBarTitleText": "找健管师" } },

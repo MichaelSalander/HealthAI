@@ -125,6 +125,9 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(assign.body.data.assignedCount, 1)
 
   const consultant = await login('consultant', 'c-101')
+  const operatorLogin = await api('/api/v1/auth/operator-login', { method: 'POST', body: JSON.stringify({ role: 'consultant', username: 'c-101', password: 'c-101' }) })
+  assert.equal(operatorLogin.response.status, 200)
+  assert.equal(operatorLogin.body.data.role, 'consultant')
   const insights = await api('/api/v1/consultant/insights', { headers: auth(consultant) })
   assert.equal(insights.response.status, 200)
   assert.ok(insights.body.data.some(item => item.userId === 'u-001' && item.status === 'pending'))

@@ -121,4 +121,4 @@
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-`pnpm run typecheck`、H5/Admin production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务。
+`pnpm run typecheck`、`pnpm --dir console run typecheck`、H5/Admin production build、`pnpm run build:mp-weixin:test`、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、环境检查与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务；最近一次 Actions 失败已确认是该 Secret 为空。

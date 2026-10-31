@@ -48,6 +48,31 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     if (!allowed) fail('无权查看该客户资料', 403)
     return { profile: state.profiles[userId] || null, reports: (state.reports[userId] || []).map(({ storagePath, ...report }) => ({ ...report, fileAvailable: Boolean(storagePath) })), observations: state.observations[userId] || [], aiReport: (state.aiReports[userId] || [])[0] || null }
   }
+  if (route === '/api/consultant/insights' && method === 'GET') {
+    requireRole('consultant', 'admin')
+    const assignedIds = new Set([...db.bookings.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId), ...db.consultationRequests.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId)])
+    state.aiInsightReviews ||= {}
+    return [...assignedIds].flatMap(userId => {
+      const request = [...db.consultationRequests].reverse().find(item => item.userId === userId)
+      const report = (state.aiReports[userId] || [])[0]
+      if (!report) return []
+      const id = `insight-${report.id}`; const review = state.aiInsightReviews[id]
+      return [{ id, userId, userName: request?.userName || userId, title: report.focusAreas?.length ? `${report.focusAreas.join('、')}需要持续观察` : '当前健康指标整体稳定', body: report.consultantInsight, summary: report.summary, riskLevel: report.riskLevel, status: review?.status || 'pending', reviewedAt: review?.reviewedAt || null, reviewedBy: review?.reviewedBy || null, generatedAt: report.generatedAt }]
+    })
+  }
+  const insightReview = route.match(/^\/api\/consultant\/insights\/([^/]+)\/review$/)
+  if (insightReview && method === 'POST') {
+    requireRole('consultant', 'admin'); const insightId = decodeURIComponent(insightReview[1]); const reportId = insightId.replace(/^insight-/, '')
+    state.aiInsightReviews ||= {}
+    const ownerId = Object.keys(state.aiReports || {}).find(userId => (state.aiReports[userId] || []).some(item => item.id === reportId))
+    if (!ownerId) fail('AI 洞察不存在', 404)
+    const allowed = actor.role === 'admin' || db.bookings.some(item => item.userId === ownerId && item.consultantId === actor.id) || db.consultationRequests.some(item => item.userId === ownerId && item.consultantId === actor.id)
+    if (!allowed) fail('无权审核该洞察', 403)
+    if (!['approved', 'rejected'].includes(body.status)) fail('审核状态无效', 400)
+    state.aiInsightReviews[insightId] = { status: body.status, reviewedAt: stamp(), reviewedBy: actor.id }
+    audit(`ai_insight.${body.status}`, insightId)
+    return { id: insightId, status: body.status, reviewedAt: state.aiInsightReviews[insightId].reviewedAt, reviewedBy: actor.id }
+  }
   if (route === '/api/consultations/eligibility' && method === 'GET') { requireRole('customer'); return { hasBloodTest: hasBloodTest(actor.id), healthCenterRoute: '/pages/health-centers/index' } }
   if (route === '/api/consultations/presence' && method === 'POST') {
     requireRole('customer', 'consultant'); const old = db.presence[actor.id]

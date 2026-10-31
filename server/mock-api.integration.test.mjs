@@ -125,6 +125,13 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(assign.body.data.assignedCount, 1)
 
   const consultant = await login('consultant', 'c-101')
+  const insights = await api('/api/v1/consultant/insights', { headers: auth(consultant) })
+  assert.equal(insights.response.status, 200)
+  assert.ok(insights.body.data.some(item => item.userId === 'u-001' && item.status === 'pending'))
+  const insight = insights.body.data.find(item => item.userId === 'u-001')
+  const reviewedInsight = await api(`/api/v1/consultant/insights/${insight.id}/review`, { method: 'POST', headers: auth(consultant), body: JSON.stringify({ status: 'approved' }) })
+  assert.equal(reviewedInsight.response.status, 200)
+  assert.equal(reviewedInsight.body.data.status, 'approved')
   const notices = await api('/api/v1/consultation-notifications', { headers: auth(consultant) })
   assert.equal(notices.response.status, 200)
   const assigned = (await api('/api/v1/consultation-requests', { headers: auth(consultant) })).body.data.find(item => item.requestId === 'integration-request-001')

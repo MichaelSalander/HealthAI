@@ -3,6 +3,7 @@ import type { AIHealthReport, HealthProfile, HealthReport, Observation } from '.
 import { getToken } from '@/utils/auth'
 export type ConsultantClient = { id: string; name: string; profile: Record<string, string>; observationCount: number; reportCount: number; lastActivityAt: string | null; status: string }
 export type ConsultantClientHealth = { profile: HealthProfile | null; reports: HealthReport[]; observations: Observation[]; aiReport: AIHealthReport | null }
+export type ConsultantInsight = { id: string; userId: string; userName: string; title: string; body: string; summary: string; riskLevel: string; status: 'pending' | 'approved' | 'rejected'; reviewedAt: string | null; reviewedBy: string | null; generatedAt: string }
 const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let session: DemoSession | undefined
 async function request<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
@@ -24,7 +25,9 @@ export const consultationAdminApi = {
   autoAssignRequests: () => request<{ assignedCount: number }>('/consultation-requests/auto-assign', 'POST', {}),
   save: (c: ConsultationConsultant) => request(`/consultation-directory/${c.id}`, 'PUT', c),
   read: (id: string) => request(`/consultation-notifications/${id}/read`, 'POST', {}),
-  clientHealth: (userId: string) => request<ConsultantClientHealth>(`/consultant/clients/${encodeURIComponent(userId)}/health`)
+  clientHealth: (userId: string) => request<ConsultantClientHealth>(`/consultant/clients/${encodeURIComponent(userId)}/health`),
+  insights: () => request<ConsultantInsight[]>('/consultant/insights'),
+  reviewInsight: (id: string, status: 'approved' | 'rejected') => request(`/consultant/insights/${encodeURIComponent(id)}/review`, 'POST', { status })
 }
 let consultantSession: DemoSession | undefined
 async function consultantRequest<T>(path: string, method = 'GET', data?: unknown): Promise<T> {

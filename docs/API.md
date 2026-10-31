@@ -119,6 +119,10 @@
 - `GET /orders` → `Order[]`
 
 ## Consultation / Messaging / Content
+- `GET /consultant/clients` → 已分配客户列表与资料数量
+- `GET /consultant/clients/:userId/health` → 已授权客户健康档案、报告、确认指标与 AI 摘要
+- `GET /consultant/insights` → 已分配客户的 AI 洞察与审核状态
+- `POST /consultant/insights/:id/review` → `{status: approved|rejected}`，写入审核记录
 - `GET /consultants/:id/availability` → `{ status, service_types[], slots[] }`（客户只读）
 - `PUT /consultants/:id/availability` → `ConsultantAvailability`（仅 Admin）
 - `POST /consultation-requests` → `ConsultationRequest`

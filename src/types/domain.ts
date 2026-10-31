@@ -8,6 +8,9 @@ export interface HealthReport { id: string; name: string; date: string; status: 
 export interface ReportExtractionCandidate { id: string; code: string; name: string; value: string; unit: string; reference: string; status: MetricStatus; confidence: number; measuredAt: string }
 export interface ReportExtraction { id: string; reportId: string; provider: string; status: 'needs_confirmation' | 'confirmed' | 'failed'; candidates: ReportExtractionCandidate[]; createdAt: string; confirmedAt?: string; errorMessage?: string }
 export interface HealthTrend { label: string; value: number }
+export interface HealthProfileCompleteness { score: number; completedFields: number; totalFields: number; missingFields: string[] }
+export interface HealthDataSources { reports: HealthReport[]; manualEntries: Observation[]; lastUpdatedAt: string | null }
+export interface HealthResultSummary { score: number; summary: string; attention: Observation[]; generatedAt: string | null }
 export interface Consultant { id: string; name: string; level: ConsultantLevel; categories: string[]; rating: number; clients: number; avatar: string }
 export type ConsultantAvailabilityStatus = 'online' | 'available' | 'full' | 'offline'
 export interface ConsultantAvailability { consultantId: string; status: ConsultantAvailabilityStatus; dailyLimit: number; bookedCount: number; freeConsultEnabled: boolean; slots: string[] }

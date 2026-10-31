@@ -68,6 +68,12 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   const trends = await api('/api/v1/health/trends?code=weight', { headers: auth(customer) })
   assert.equal(trends.response.status, 200)
   assert.ok(trends.body.data.some(item => item.value === 62.5))
+  const completeness = await api('/api/v1/health/profile/completeness', { headers: auth(customer) })
+  assert.equal(completeness.response.status, 200)
+  assert.ok(completeness.body.data.score > 0)
+  const sources = await api('/api/v1/health/data-sources', { headers: auth(customer) })
+  assert.equal(sources.response.status, 200)
+  assert.ok(Array.isArray(sources.body.data.reports))
   const blockedUpload = await api('/api/v1/health/reports', { method: 'POST', headers: auth(customer), body: JSON.stringify({ fileName: 'blocked.pdf', kind: 'blood_test' }) })
   assert.equal(blockedUpload.response.status, 403)
   assert.equal(blockedUpload.body.code, 'HEALTH_DATA_CONSENT_REQUIRED')
@@ -102,6 +108,9 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   const ai = await api('/api/v1/health/ai-reports/generate', { method: 'POST', headers: auth(customer), body: '{}' })
   assert.equal(ai.response.status, 201)
   assert.ok(ai.body.data.summary)
+  const latestResult = await api('/api/v1/health/results/latest', { headers: auth(customer) })
+  assert.equal(latestResult.response.status, 200)
+  assert.equal(latestResult.body.data.generatedAt, ai.body.data.generatedAt)
 
   const request = await api('/api/v1/consultation-requests', {
     method: 'POST', headers: auth(customer), body: JSON.stringify({ mode: 'immediate_text', requestId: 'integration-request-001' })

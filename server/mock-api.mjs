@@ -301,6 +301,12 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer'])
     return send(res, 200, { code: 0, data: state.profiles[actor.id] || null })
   }
+  if (route === '/api/health/profile/completeness' && req.method === 'GET') {
+    const actor = requireActor(req, ['customer']); const profile = state.profiles[actor.id] || {}
+    const fields = ['gender', 'birthYear', 'heightCm', 'medicalHistory', 'allergies', 'medications', 'lifestyle']
+    const completed = fields.filter(field => String(profile[field] || '').trim()).length
+    return send(res, 200, { code: 0, data: { score: Math.round(completed / fields.length * 100), completedFields: completed, totalFields: fields.length, missingFields: fields.filter(field => !String(profile[field] || '').trim()) } })
+  }
   if (route === '/api/health/consents' && req.method === 'GET') {
     const actor = requireActor(req, ['customer'])
     return send(res, 200, { code: 0, data: state.consents?.[actor.id] || [] })
@@ -336,6 +342,12 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/health/observations' && req.method === 'POST') {
     const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const id = actor.id; const body = await readBody(req); const item = { ...body, id: `o-${Date.now()}`, measuredAt: body.measuredAt || new Date().toISOString().slice(0, 10) }
     state.observations[id] = [item, ...(state.observations[id] || [])]; persist(); return send(res, 201, { code: 0, data: item })
+  }
+  if (route === '/api/health/data-sources' && req.method === 'GET') {
+    const actor = requireActor(req, ['customer']); const reports = (state.reports[actor.id] || []).map(reportView); const observations = state.observations[actor.id] || []
+    const manualEntries = observations.filter(item => item.sourceType === 'manual')
+    const timestamps = [...reports.map(item => item.date), ...observations.map(item => item.measuredAt)].filter(Boolean).sort().reverse()
+    return send(res, 200, { code: 0, data: { reports, manualEntries, lastUpdatedAt: timestamps[0] || null } })
   }
   if (route === '/api/health/blood-test-status' && req.method === 'GET') {
     const actor = requireActor(req, ['customer'])
@@ -424,6 +436,10 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/health/ai-reports' && req.method === 'GET') {
     const actor = requireActor(req, ['customer'])
     return send(res, 200, { code: 0, data: (state.aiReports[actor.id] || [])[0] || null })
+  }
+  if (route === '/api/health/results/latest' && req.method === 'GET') {
+    const actor = requireActor(req, ['customer']); const observations = state.observations[actor.id] || []; const latest = (state.aiReports[actor.id] || [])[0] || null
+    return send(res, 200, { code: 0, data: { score: observations.length ? 85 : 0, summary: latest?.summary || '', attention: observations.filter(item => item.status !== '正常'), generatedAt: latest?.generatedAt || null } })
   }
   if (route === '/api/health/ai-reports/generate' && req.method === 'POST') {
     const actor = requireActor(req, ['customer']); const id = actor.id; const observations = state.observations[id] || []

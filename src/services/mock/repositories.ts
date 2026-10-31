@@ -56,6 +56,7 @@ export const authProvider: AuthProvider = { async login() { return sessionUser(a
 export const healthRepository: HealthRepository = {
   async getProfile() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile | null>('/health/profile', undefined, session); if (remote) profile = remote; return remote || profile },
   async saveProfile(input) { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile>('/health/profile', { method: 'PUT', body: JSON.stringify(input) }, session); profile = remote; writeStorage('healthai_profile', profile); return profile },
+  async getProfileCompleteness() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthProfileCompleteness>('/health/profile/completeness', undefined, session) },
   async listConsents() { return consultationRepository.consents() },
   async grantConsent(consentType = 'health_data', version = 'v1') { return consultationRepository.saveConsent(consentType, version, 'granted') },
   async getObservations() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<Observation[]>('/health/observations', undefined, session); observations = remote; writeStorage('healthai_observations', observations); return remote },
@@ -64,6 +65,8 @@ export const healthRepository: HealthRepository = {
     const session = await consultationRepository.customer()
     return apiRequestRequired<import('../../types/domain').HealthTrend[]>(`/health/trends?code=${encodeURIComponent(code)}`, undefined, session)
   },
+  async listDataSources() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthDataSources>('/health/data-sources', undefined, session) },
+  async getLatestResult() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthResultSummary>('/health/results/latest', undefined, session) },
   async listReports() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthReport[]>('/health/reports', undefined, session); reports = remote; writeStorage('healthai_reports', reports); return remote },
   async uploadReport(fileName, kind = 'general', upload) { const report = await consultationRepository.uploadDemoReport(fileName, kind, upload); reports = [report, ...reports.filter(item => item.id !== report.id)]; writeStorage('healthai_reports', reports); return report },
   async getReportExtraction(reportId: string) { return consultationRepository.reportExtraction(reportId) },

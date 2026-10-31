@@ -100,6 +100,12 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(request.body.data.status, 'queued')
 
   const admin = await login('admin')
+  const categories = await api('/api/v1/consultant-categories')
+  assert.equal(categories.response.status, 200)
+  assert.equal(categories.body.data.length, 9)
+  const directory = await api('/api/v1/consultation-directory')
+  assert.equal(directory.response.status, 200)
+  assert.ok(directory.body.data[0].categories?.length)
   const assign = await api('/api/v1/consultation-requests/auto-assign', { method: 'POST', headers: auth(admin), body: '{}' })
   assert.equal(assign.response.status, 200)
   assert.equal(assign.body.data.assignedCount, 1)

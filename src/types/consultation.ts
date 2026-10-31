@@ -1,7 +1,7 @@
 export type DemoRole = 'customer' | 'consultant' | 'admin'
 export interface DemoSession { id: string; role: DemoRole; name: string; token: string }
 export interface ConsultationSlot { id: string; startAt: string; capacity: number; remaining: number }
-export interface ConsultationConsultant { id: string; name: string; level: string; status: 'available' | 'full' | 'offline'; freeConsultEnabled: boolean; dailyLimit: number; bookedCount: number; slots: ConsultationSlot[] }
+export interface ConsultationConsultant { id: string; name: string; level: string; categories?: string[]; status: 'available' | 'full' | 'offline'; freeConsultEnabled: boolean; dailyLimit: number; bookedCount: number; slots: ConsultationSlot[] }
 export interface ConsultationRequest { id: string; userId: string; userName: string; consultantId: string; consultantName: string; slotId: string; slotStartAt: string; status: 'pending_assignment' | 'assigned' | 'accepted' | 'completed' | 'cancelled'; createdAt: string }
 export interface ConsultationNotice { id: string; title: string; bookingId?: string; resourceType?: 'consultation_request' | 'conversation' | 'voice_session' | 'service_record'; resourceId?: string; read: boolean; createdAt: string }
 export interface ConsultationPresence { userId: string; name: string; online: boolean; idle: boolean; lastSeenAt: string; lastActionAt: string }

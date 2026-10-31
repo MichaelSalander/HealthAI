@@ -40,6 +40,13 @@ function loadOperatorAccounts() {
 }
 const operatorAccounts = loadOperatorAccounts()
 const initialState = {
+  consultantCategories: [
+    { id: 'cat-01', name: '体重管理', enabled: true, sort: 1 }, { id: 'cat-02', name: '慢病管理', enabled: true, sort: 2 },
+    { id: 'cat-03', name: '肠道健康', enabled: true, sort: 3 }, { id: 'cat-04', name: '睡眠管理', enabled: true, sort: 4 },
+    { id: 'cat-05', name: '女性健康', enabled: true, sort: 5 }, { id: 'cat-06', name: '运动营养', enabled: true, sort: 6 },
+    { id: 'cat-07', name: '心理压力', enabled: true, sort: 7 }, { id: 'cat-08', name: '抗衰老', enabled: true, sort: 8 },
+    { id: 'cat-09', name: '亚健康管理', enabled: true, sort: 9 }
+  ],
   contentSettings: { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。' },
   profiles: { 'u-001': { id: 'hp-001', userId: 'u-001', gender: '女', birthYear: '1992', heightCm: '165', medicalHistory: '', allergies: '', medications: '', lifestyle: '久坐，偶尔运动', updatedAt: new Date().toISOString() } },
   reports: { 'u-001': [{ id: 'r-001', name: '2024年度体检报告.pdf', date: '2024-10-10', status: '解析成功', source: '体检报告' }, { id: 'r-002', name: '2023年度体检报告.pdf', date: '2023-09-12', status: '解析成功', source: '体检报告' }] },
@@ -74,6 +81,7 @@ const databaseMode = process.env.HEALTHAI_DB || 'sqlite'
 const sqliteStore = databaseMode === 'json' ? null : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
 state.contentSettings ||= structuredClone(initialState.contentSettings)
+state.consultantCategories ||= structuredClone(initialState.consultantCategories)
 
 function loadState() {
   try { return { ...initialState, ...(sqliteStore ? sqliteStore.load() : JSON.parse(fs.readFileSync(dataFile, 'utf8'))) } } catch { return structuredClone(initialState) }
@@ -185,6 +193,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { code: 0, data })
   }
   if (route === '/api/status' && req.method === 'GET') return send(res, 200, { code: 0, data: { service: 'healthai-api', version: apiVersion, status: 'ok' } })
+  if (route === '/api/consultant-categories' && req.method === 'GET') {
+    state.consultantCategories ||= structuredClone(initialState.consultantCategories)
+    const counts = new Map((state.workflow?.consultants || []).flatMap(item => (item.categories || []).map(category => [category, 1])).reduce((all, [category]) => all.set(category, (all.get(category) || 0) + 1), new Map()))
+    return send(res, 200, { code: 0, data: state.consultantCategories.filter(item => item.enabled).sort((a, b) => a.sort - b.sort).map(item => ({ ...item, count: counts.get(item.name) || 0 })) })
+  }
+  if (route === '/api/consultant-categories' && req.method === 'PUT') {
+    const actor = requireActor(req, ['admin']); const body = await readBody(req)
+    if (!Array.isArray(body) || body.length > 50) { const error = new Error('分类数据格式无效'); error.status = 400; throw error }
+    const names = new Set(); state.consultantCategories = body.map((item, index) => {
+      const name = String(item?.name || '').trim(); if (!name || names.has(name)) { const error = new Error('分类名称不能为空且不能重复'); error.status = 400; throw error }
+      names.add(name); return { id: String(item.id || `cat-${randomUUID().slice(0, 8)}`), name, enabled: Boolean(item.enabled), sort: Number.isInteger(item.sort) ? item.sort : index + 1 }
+    }); persist(); return send(res, 200, { code: 0, data: state.consultantCategories })
+  }
   if (route === '/api/auth/mock-login' && req.method === 'POST') {
     if (isProduction) return send(res, 403, { code: 403, message: '生产环境不开放演示登录' })
     const actor = { id: 'u-001', name: '张小美', role: 'customer' }; return send(res, 200, { code: 0, data: { accessToken: issueToken(actor), refreshToken: 'development-only', user: actor, expiresIn: sessionTtlSeconds } })

@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto'
 const active = b => ['pending_assignment', 'assigned', 'accepted'].includes(b.status)
 const fail = (message, status = 409) => { throw Object.assign(new Error(message), { status }) }
 const people = [
-  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true },
-  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true },
-  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false }
+  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['体重管理', '运动营养'] },
+  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['睡眠管理', '女性健康'] },
+  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false, categories: ['慢病管理'] }
 ]
 export function seedWorkflow() {
   const start = new Date(); start.setUTCHours(0, 0, 0, 0); start.setUTCDate(start.getUTCDate() + 1)

@@ -80,6 +80,7 @@
 - [x] T443 HTTP 集成验收：客户健康资料、报告确认、AI 结果、Admin 派单、健管师接单与咨询消息全链路
 - [x] T444 健康趋势 API：按登录用户与指标代码读取后端观察值，正式 API 失败不再静默显示 Mock 趋势
 - [x] T445 客户 Session 恢复：服务器签名 Token 通过 uni-app Storage 恢复，App 重启后仍由后端验证有效期
+- [x] T446 过期 Session 自愈：客户 API 返回 401 时清除本地 Token，下一次进入流程可重新登录
 - [x] T003a C 端页面统一依赖 `services/api/repositories` 入口，页面不再直接导入 Mock Repository
 - [x] T003b App 启动身份与健康 API 统一使用后端 Session，微信登录成功后复用客户 Session
 - [x] T003c 清理前端 Mock 登录命名：App Store 统一调用 `AuthProvider.login()`，页面只依赖 API Repository 入口

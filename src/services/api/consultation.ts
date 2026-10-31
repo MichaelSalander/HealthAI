@@ -16,6 +16,10 @@ function persistCustomerSession(session: DemoSession): DemoSession {
   try { uni.setStorageSync(customerSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
   return session
 }
+function clearCustomerSession(): void {
+  customerSession = undefined
+  try { uni.setStorageSync(customerSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
+}
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession): Promise<T> {
   return new Promise((resolve, reject) => {
     uni.request({ url: `${base}${path}`, method, data: data as Record<string, unknown>, timeout: 10000,
@@ -23,7 +27,10 @@ function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?:
       success: response => {
         const payload = response.data as { data: T; message?: string }
         if (response.statusCode >= 200 && response.statusCode < 300) resolve(payload.data)
-        else reject(new Error(payload.message || '操作失败，请重试'))
+        else {
+          if (response.statusCode === 401 && session?.role === 'customer') clearCustomerSession()
+          reject(new Error(payload.message || '操作失败，请重试'))
+        }
       }, fail: () => reject(new Error('无法连接本地服务，请确认 API 已启动')) })
   })
 }

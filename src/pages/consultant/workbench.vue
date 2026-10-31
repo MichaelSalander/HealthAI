@@ -16,6 +16,7 @@ const notices = ref<ConsultationNotice[]>([])
 const error = ref('')
 const saving = ref(false)
 const initializing = ref(true)
+const isDemoMode = Boolean(!(import.meta as any).env?.VITE_AUTH_MODE)
 let timer: ReturnType<typeof setInterval> | undefined
 let knownNoticeIds = new Set<string>()
 let noticesLoaded = false
@@ -25,7 +26,11 @@ const unreadCount = computed(() => notices.value.filter(item => !item.read).leng
 
 async function load() {
   try {
-    if (!session.value) session.value = await api.login('consultant', 'c-101')
+    if (!session.value) {
+      const authMode = (import.meta as any).env?.VITE_AUTH_MODE
+      if (authMode === 'wechat' && !uni.getStorageSync('healthai_consultant_session')) { uni.redirectTo({ url: '/pages/consultant/login' }); return }
+      session.value = await api.login('consultant', 'c-101')
+    }
     const [directory, items, consultationItems, notifications] = await Promise.all([api.directory(), api.bookings(session.value), api.consultationRequests(session.value), api.notices(session.value)])
     consultant.value = directory.find(item => item.id === session.value?.id); bookings.value = items; requests.value = consultationItems; notices.value = notifications
     if (noticesLoaded && notifications.some(item => !item.read && !knownNoticeIds.has(item.id))) uni.showToast({ title: '有新的客户配对通知' })
@@ -52,7 +57,7 @@ async function acceptRequest(item: ConsultationRequestV2) { if (!session.value) 
     <AppCard class="status-card"><view class="status-row"><view class="status-dot" :class="consultant?.status" /><view class="status-copy"><text class="status-name">{{ consultant?.status === 'offline' ? '暂时离线' : '在线接待中' }}</text><text class="muted">{{ consultant?.status === 'offline' ? '上线后才能接受新咨询' : '有客户配对时会立即通知你' }}</text></view><text class="status-tag">{{ consultant?.status === 'full' ? '今日已满' : consultant?.status === 'offline' ? '离线' : '可接待' }}</text></view><view class="company-note"><text class="note-icon">i</text><text>咨询时段和客户由平台统一分配，你只需要保持在线并及时回应。</text></view></AppCard>
     <view class="section-head"><text class="section-title">最新提醒</text><text class="section-link" @click="uni.reLaunch({ url: '/pages/consultants/notices' })">全部通知 ›</text></view>
     <AppCard class="notice-card"><view v-if="notices[0]" class="notice-row"><view class="notice-icon">!</view><view class="notice-copy"><text class="notice-title">{{ notices[0].title }}</text><text class="muted">及时确认咨询，客户会收到状态更新</text></view></view><text v-else class="muted">暂无新的提醒</text></AppCard>
-    <view class="demo-switch"><text>演示账号</text><button size="mini" @click="switchConsultant('c-101').catch(e => error = e.message)">陈晨</button><button size="mini" @click="switchConsultant('c-102').catch(e => error = e.message)">林悦</button></view>
+    <view v-if="isDemoMode" class="demo-switch"><text>演示账号</text><button size="mini" @click="switchConsultant('c-101').catch(e => error = e.message)">陈晨</button><button size="mini" @click="switchConsultant('c-102').catch(e => error = e.message)">林悦</button></view>
     <ConsultantBottomNav active="workbench" />
   </view>
 </template>

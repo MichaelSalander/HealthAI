@@ -5,6 +5,8 @@ import type { AIHealthReport, HealthProfile, HealthReport, Observation, Order, R
 const base = (((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let customerSession: DemoSession | undefined
 const customerSessionKey = 'healthai_customer_session'
+let consultantSession: DemoSession | undefined
+const consultantSessionKey = 'healthai_consultant_session'
 function readCustomerSession(): DemoSession | undefined {
   try {
     const value = uni.getStorageSync(customerSessionKey)
@@ -19,6 +21,14 @@ function persistCustomerSession(session: DemoSession): DemoSession {
 function clearCustomerSession(): void {
   customerSession = undefined
   try { uni.setStorageSync(customerSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
+}
+function readConsultantSession(): DemoSession | undefined {
+  try { const value = uni.getStorageSync(consultantSessionKey); return value ? JSON.parse(String(value)) as DemoSession : undefined } catch { return undefined }
+}
+function persistConsultantSession(session: DemoSession): DemoSession {
+  consultantSession = session
+  try { uni.setStorageSync(consultantSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
+  return session
 }
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -36,8 +46,16 @@ function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?:
 }
 export const consultationRepository = {
   login(role: DemoRole, id?: string) {
-    if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat') return this.loginWithWechat(role)
+    if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat' && role === 'customer') return this.loginWithWechat(role)
+    if (role === 'consultant') {
+      const saved = consultantSession || readConsultantSession()
+      if (saved) { consultantSession = saved; return Promise.resolve(saved) }
+      if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat') return Promise.reject(new Error('请先登录健管师账号'))
+    }
     return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => role === 'customer' ? persistCustomerSession(session) : session)
+  },
+  operatorLogin(username: string, password: string) {
+    return request<DemoSession>('/auth/operator-login', 'POST', { role: 'consultant', username, password }).then(persistConsultantSession)
   },
   loginWithWechat(role: DemoRole = 'customer') {
     return new Promise<DemoSession>((resolve, reject) => {

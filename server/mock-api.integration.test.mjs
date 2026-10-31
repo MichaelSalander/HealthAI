@@ -65,6 +65,9 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   const customer = await login('customer', 'u-001')
   const profile = await api('/api/v1/health/profile', { headers: auth(customer) })
   assert.equal(profile.response.status, 200)
+  const trends = await api('/api/v1/health/trends?code=weight', { headers: auth(customer) })
+  assert.equal(trends.response.status, 200)
+  assert.ok(trends.body.data.some(item => item.value === 62.5))
 
   const upload = await api('/api/v1/health/reports', {
     method: 'POST',

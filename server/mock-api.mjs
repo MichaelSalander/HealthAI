@@ -248,6 +248,15 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer'])
     return send(res, 200, { code: 0, data: state.observations[actor.id] || [] })
   }
+  if (route === '/api/health/trends' && req.method === 'GET') {
+    const actor = requireActor(req, ['customer']); const code = url.searchParams.get('code') || ''
+    const items = (state.observations[actor.id] || [])
+      .filter(item => item.code === code)
+      .map(item => ({ label: String(item.measuredAt || '').slice(0, 7), value: Number.parseFloat(String(item.value)) }))
+      .filter(item => item.label && Number.isFinite(item.value))
+      .reverse()
+    return send(res, 200, { code: 0, data: items })
+  }
   if (route === '/api/health/observations' && req.method === 'POST') {
     const actor = requireActor(req, ['customer']); const id = actor.id; const body = await readBody(req); const item = { ...body, id: `o-${Date.now()}`, measuredAt: body.measuredAt || new Date().toISOString().slice(0, 10) }
     state.observations[id] = [item, ...(state.observations[id] || [])]; persist(); return send(res, 201, { code: 0, data: item })

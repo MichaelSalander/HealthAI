@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import { ref } from "vue";
+defineOptions({ name: "HealthAiConsultants" });
+const categories = ref([{name:'体重管理',count:12,enabled:true,sort:1},{name:'慢病管理',count:8,enabled:true,sort:2},{name:'肠道健康',count:5,enabled:true,sort:3},{name:'睡眠管理',count:4,enabled:true,sort:4},{name:'女性健康',count:7,enabled:true,sort:5},{name:'运动营养',count:6,enabled:true,sort:6}]);
+const add = () => categories.value.push({name:'新分类',count:0,enabled:false,sort:categories.value.length+1});
+</script>
+<template><div class="page"><el-row :gutter="16"><el-col :span="15"><el-card shadow="never"><template #header><div class="bar"><b>A-02 健管师与分类</b><el-button type="primary" @click="add">新增分类</el-button></div></template><el-table :data="categories"><el-table-column label="分类名称"><template #default="{row}"><el-input v-model="row.name"/></template></el-table-column><el-table-column prop="count" label="健管师数量" width="120"/><el-table-column label="排序" width="110"><template #default="{row}"><el-input-number v-model="row.sort" :min="1"/></template></el-table-column><el-table-column label="启用" width="100"><template #default="{row}"><el-switch v-model="row.enabled"/></template></el-table-column></el-table></el-card></el-col><el-col :span="9"><el-card shadow="never"><template #header><b>认证审核</b></template><el-timeline><el-timeline-item timestamp="今天 10:20" type="warning">王雅婷提交高级健管师认证</el-timeline-item><el-timeline-item timestamp="昨天 16:30" type="success">李晓雯认证已通过</el-timeline-item><el-timeline-item timestamp="12月08日">张志远补交运动营养证书</el-timeline-item></el-timeline></el-card></el-col></el-row></div></template>
+<style scoped>.page{padding:4px}.bar{display:flex;justify-content:space-between;align-items:center}</style>

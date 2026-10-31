@@ -1,6 +1,14 @@
 node_modules/
+server/*.sqlite
+server/healthai.sqlite-shm
+server/healthai.sqlite-wal
+server/uploads/
 .npm-cache/
 .pnpm-store/
 dist/
 server/mock-db.json
 .DS_Store
+.env
+.env.local
+server/.env
+artifacts/

@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import { useHealthStore } from './stores/health'
 
-onMounted(() => useHealthStore().ensureMockUser())
+onMounted(() => useHealthStore().ensureUser())
 </script>
 
 <template><slot /></template>

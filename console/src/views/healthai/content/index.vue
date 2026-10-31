@@ -1,0 +1,23 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { ElMessage } from "element-plus";
+import { onMounted } from "vue";
+import { healthAiApi, type ContentSettings, type HomeEntry } from "@/api/healthai";
+defineOptions({ name: "HealthAiContent" });
+const active = ref("home");
+const settings = ref<ContentSettings>({ resultDisclaimer: "以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。", resultConsultationTitle: "建议你咨询健康管理师", resultConsultationDescription: "获取专业的分析解读和个性化建议。" });
+const items = ref<HomeEntry[]>([
+  { id: 'upload', title: "上传体检报告", subtitle: "AI 帮你初步分析", route: '/pages/report/index', sort: 1, enabled: true },
+  { id: 'manual', title: "手动录入数据", subtitle: "记录日常健康", route: '/pages/health/manual', sort: 2, enabled: true },
+  { id: 'report', title: "查看健康报告", subtitle: "历史数据管理", route: '/pages/report/index', sort: 3, enabled: true },
+  { id: 'consultant', title: "找健康管理师", subtitle: "专业解读与指导", route: '/pages/consultants/index', sort: 4, enabled: true }
+]);
+onMounted(async () => { items.value = await healthAiApi.listHomeEntries(items.value); settings.value = await healthAiApi.listContentSettings(settings.value); });
+const save = async () => { if (active.value === "home") items.value = await healthAiApi.saveHomeEntries(items.value); else settings.value = await healthAiApi.saveContentSettings(settings.value); ElMessage.success("配置已保存，C 端将读取最新内容"); };
+</script>
+<template>
+  <div class="health-page"><el-card shadow="never"><template #header><div class="card-title"><span>内容与首页配置</span><el-button type="primary" @click="save">保存配置</el-button></div></template>
+    <el-tabs v-model="active"><el-tab-pane label="首页入口" name="home"><el-alert title="以下配置会同步到 C 端首页，第一阶段使用 API 持久化。" type="info" :closable="false" class="mb" /><el-table :data="items"><el-table-column label="入口名称"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column><el-table-column label="副标题"><template #default="{ row }"><el-input v-model="row.subtitle" /></template></el-table-column><el-table-column prop="sort" label="排序" width="120"><template #default="{ row }"><el-input-number v-model="row.sort" :min="1" /></template></el-table-column><el-table-column label="启用" width="100"><template #default="{ row }"><el-switch v-model="row.enabled" /></template></el-table-column></el-table></el-tab-pane><el-tab-pane label="健康结果文案" name="result"><el-form label-width="120px"><el-form-item label="结果说明"><el-input v-model="settings.resultDisclaimer" type="textarea" :rows="5" /></el-form-item><el-form-item label="咨询标题"><el-input v-model="settings.resultConsultationTitle" /></el-form-item><el-form-item label="咨询引导"><el-input v-model="settings.resultConsultationDescription" /></el-form-item></el-form></el-tab-pane></el-tabs>
+  </el-card></div>
+</template>
+<style scoped>.health-page{padding:4px}.card-title{display:flex;justify-content:space-between;align-items:center}.mb{margin-bottom:16px}</style>

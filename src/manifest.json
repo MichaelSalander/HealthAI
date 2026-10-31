@@ -6,5 +6,10 @@
   "versionCode": "100",
   "vueVersion": "3",
   "transformPx": false,
-  "h5": { "title": "AI智能健康管理平台" }
+  "h5": { "title": "AI智能健康管理平台" },
+  "mp-weixin": {
+    "appid": "touristappid",
+    "setting": { "urlCheck": false },
+    "usingComponents": {}
+  }
 }

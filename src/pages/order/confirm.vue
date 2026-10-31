@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import AppCard from '../../components/AppCard.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
-import { commerceRepository } from '../../services/mock/repositories'
+import { commerceRepository } from '../../services/api/repositories'
 import type { ServicePlan } from '../../types/domain'
 import { uniApi as uni } from '../../services/platform/uni'
 const plans = ref<ServicePlan[]>([])

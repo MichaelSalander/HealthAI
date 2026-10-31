@@ -4,12 +4,12 @@ import { useHealthStore } from '../../stores/health'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
-import { contentRepository } from '../../services/mock/repositories'
+import { contentRepository } from '../../services/api/repositories'
 import type { HomeEntry } from '../../services/api/contracts'
 
 const store = useHealthStore()
 const entries = ref<HomeEntry[]>([])
-onMounted(async () => { store.ensureMockUser(); entries.value = await contentRepository.listHomeEntries() })
+onMounted(async () => { store.ensureUser(); entries.value = await contentRepository.listHomeEntries() })
 const go = (url: string) => uni.navigateTo({ url })
 </script>
 

@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import SectionTitle from '../../components/SectionTitle.vue'
-import { healthRepository } from '../../services/mock/repositories'
+import { healthRepository } from '../../services/api/repositories'
 import type { HealthTrend, Observation } from '../../types/domain'
 const observations = ref<Observation[]>([]); const trends = ref<HealthTrend[]>([])
 onMounted(async () => { observations.value = await healthRepository.getObservations(); trends.value = await healthRepository.getTrends('weight') })

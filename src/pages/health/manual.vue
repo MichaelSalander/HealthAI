@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
 import BottomNav from '../../components/BottomNav.vue'
-import { healthRepository } from '../../services/mock/repositories'
+import { healthRepository } from '../../services/api/repositories'
 
 const weight = ref('62.5')
 const save = async () => {

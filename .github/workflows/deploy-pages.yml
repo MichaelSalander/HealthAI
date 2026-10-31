@@ -37,10 +37,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate production API configuration
+        env:
+          HEALTHAI_API_BASE_URL: ${{ secrets.HEALTHAI_API_BASE_URL }}
+        run: test -n "$HEALTHAI_API_BASE_URL"
+
       - name: Build uni-app H5
         env:
           GITHUB_PAGES: true
           PAGES_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_API_BASE_URL: ${{ secrets.HEALTHAI_API_BASE_URL }}
+          VITE_AUTH_MODE: wechat
         run: pnpm run build:h5
 
       - name: Prepare GitHub Pages site

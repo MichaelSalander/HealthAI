@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'; import AppCard from '../../components/AppCard.vue'; import { uniApi as uni } from '../../services/platform/uni'
-const input = ref(''); const messages = ref([{ from: 'consultant', text: '你好！已查看你的体检报告。主要问题是 LDL 偏高，我们可以从饮食和运动两方面逐步调整。' }, { from: 'user', text: '好的，请问饮食上有什么建议？' }]); const send = () => { if (!input.value.trim()) return; messages.value.push({ from: 'user', text: input.value }); input.value = '' }
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import ConsultationRoom from '../../components/ConsultationRoom.vue'
+import { consultationRepository as api } from '../../services/api/consultation'
+import type { DemoSession } from '../../types/consultation'
+import { uniApi as uni } from '../../services/platform/uni'
+const roomId = ref(''); const session = ref<DemoSession>()
+onLoad(async options => { roomId.value = options?.conversationId || ''; session.value = await api.customer() })
 </script>
-<template><view class="page chat-page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><view><text class="top-title">李晓雯</text><text class="online">在线</text></view><text>⋯</text></view><scroll-view scroll-y class="messages"><view v-for="(item, i) in messages" :key="i" :class="['bubble-row', item.from]"><view class="bubble">{{ item.text }}</view></view></scroll-view><view class="quick"><text>常用问题</text><text>预约咨询</text><text>发送报告</text></view><view class="composer"><input v-model="input" placeholder="请输入消息…" confirm-type="send" @confirm="send" /><button class="send" @click="send">发送</button></view></view></template>
-<style scoped>.chat-page{padding-bottom:190rpx}.topbar{height:82rpx;display:flex;align-items:center;justify-content:space-between}.back{font-size:48rpx}.top-title,.online{display:block}.top-title{font-size:33rpx;font-weight:700}.online{color:#08a990;font-size:20rpx}.messages{height:850rpx;padding:18rpx 0}.bubble-row{display:flex;margin:20rpx 0}.bubble-row.user{justify-content:flex-end}.bubble{max-width:78%;padding:20rpx;border-radius:22rpx;background:#fff;line-height:1.55;color:#405a56}.user .bubble{color:#155b55;background:#dff9f2}.quick{display:flex;gap:12rpx}.quick text{padding:13rpx 18rpx;border:1rpx solid #e5efed;border-radius:18rpx;color:#60746f;font-size:21rpx}.composer{position:fixed;z-index:10;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,430px);display:flex;gap:12rpx;padding:18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));background:#fff}.composer input{flex:1;height:76rpx;padding:0 22rpx;border:1rpx solid #e1ece9;border-radius:20rpx}.send{width:120rpx;height:76rpx;line-height:76rpx;padding:0;border:0;border-radius:20rpx;color:#fff;background:#08b39f}</style>
+<template><ConsultationRoom v-if="roomId && session" :room-id="roomId" :session="session" @back="uni.navigateBack()" @completed="uni.navigateBack()" /><view v-else class="loading-page">正在进入咨询房间…</view></template>
+<style scoped>.loading-page{display:flex;align-items:center;justify-content:center;height:100vh;color:#9b8c83;background:#fffaf6;font-size:25rpx}</style>

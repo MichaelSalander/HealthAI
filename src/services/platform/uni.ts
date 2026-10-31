@@ -1,24 +1,49 @@
-import { uni as h5Uni } from '@dcloudio/uni-h5'
-
 type NavigateOptions = { url: string }
 type ToastOptions = { title: string }
+type RequestOptions = {
+  url: string
+  method?: string
+  data?: Record<string, unknown>
+  timeout?: number
+  header?: Record<string, string>
+  success?: (response: { statusCode: number; data: unknown }) => void
+  fail?: () => void
+}
+type UniRuntime = {
+  request: (options: RequestOptions) => unknown
+  navigateTo: (options: NavigateOptions) => unknown
+  redirectTo: (options: NavigateOptions) => unknown
+  reLaunch: (options: NavigateOptions) => unknown
+  navigateBack?: () => unknown
+  showToast?: (options: ToastOptions) => unknown
+  [key: string]: unknown
+}
 
-const runtime = (globalThis as { uni?: typeof h5Uni }).uni ?? h5Uni
+// Use the platform-provided global uni object. A static @dcloudio/uni-h5 import
+// makes mp-weixin bundles pull H5-only runtime modules and breaks compilation.
+const nativeRuntime = (globalThis as { uni?: Partial<UniRuntime> }).uni ?? {}
+const runtime = {
+  ...nativeRuntime,
+  request: nativeRuntime.request ?? (() => { throw new Error('当前运行环境不支持 uni.request') }),
+  navigateTo: nativeRuntime.navigateTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
+  redirectTo: nativeRuntime.redirectTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
+  reLaunch: nativeRuntime.reLaunch ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` })
+} as UniRuntime
 
 export const uniApi = {
   ...runtime,
   navigateTo(options: NavigateOptions) {
-    const nativeNavigateTo = (runtime as typeof runtime & { navigateTo?: (input: NavigateOptions) => unknown }).navigateTo
+    const nativeNavigateTo = runtime.navigateTo
     if (nativeNavigateTo) return nativeNavigateTo.call(runtime, options)
     if (typeof window !== 'undefined') window.location.hash = `#${options.url}`
   },
   navigateBack() {
-    const nativeNavigateBack = (runtime as typeof runtime & { navigateBack?: () => unknown }).navigateBack
+    const nativeNavigateBack = runtime.navigateBack
     if (nativeNavigateBack) return nativeNavigateBack.call(runtime)
     if (typeof window !== 'undefined') window.history.back()
   },
   showToast(options: ToastOptions) {
-    const nativeShowToast = (runtime as typeof runtime & { showToast?: (input: ToastOptions) => unknown }).showToast
+    const nativeShowToast = runtime.showToast
     if (nativeShowToast) return nativeShowToast.call(runtime, options)
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('healthai-toast', { detail: options.title }))
   }

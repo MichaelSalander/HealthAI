@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
-import { healthRepository } from '../../services/mock/repositories'
+import { healthRepository } from '../../services/api/repositories'
 
 const saving = ref(false)
 const uniApi = (globalThis as any).uni

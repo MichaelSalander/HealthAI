@@ -25,19 +25,22 @@
 | ServicePlan | id, productId, levelId, cycle, priceFen, entitlement | 标准方案版本化 |
 | Order | id, userId, consultantId, totalFen, status, commissionSnapshot | 下单固化分润快照 |
 | Payment | id, orderId, channel, amountFen, status, paidAt | 平台收款 |
-| Conversation | id, userId, consultantId, relationId | 需授权关系 |
-| Message | id, conversationId, senderId, type, content, sentAt | 不做物理删除 |
+| ConsultationRequest | id, userId, serviceType, mode, bloodTestCheck, status, priority, requestedAt, assignedAt, acceptedAt, completedAt, expiresAt | `immediate_text/immediate_voice/scheduled`；一个请求最多建立一个有效房间 |
+| Conversation | id, consultationRequestId, userId, consultantId, relationId, status, lastMessageAt, startedAt, endedAt | 需授权关系；配对成功后建立咨询房间 |
+| ConversationParticipant | id, conversationId, userId, role, joinedAt, leftAt, lastReadMessageId, presence | 房间成员与未读游标 |
+| Message | id, conversationId, senderId, type, content, clientMessageId, status, sentAt, deliveredAt, readAt | `text/system/voice_invite/voice_event/attachment`；不做物理删除；clientMessageId 冪等 |
+| VoiceSession | id, conversationId, initiatorId, provider, providerSessionId, status, startedAt, connectedAt, endedAt, durationSec, failureCode | Mock/正式语音 Provider；语音失败不阻断文字通道 |
+| Presence | id, subjectId, subjectRole, status, lastSeenAt, currentConversationId | 客户与健管师在线/忙碌/离线状态 |
+| ServiceRecord | id, consultationRequestId, conversationId, userId, consultantId, summary, followUpItems, durationSec, createdBy, createdAt | 咨询完成后产生；可供双方查看摘要 |
 | AIInsight | id, profileId, consultantId, sourceVersion, summary, payload, reviewStatus, createdAt | 健管师端完整洞察；需记录审核状态 |
 | CommissionRule | id, scopeType, scopeId, ruleJson, effectiveFrom, effectiveTo | 默认/健管师/商品 |
 | CommissionLedger | id, consultantId, orderId, type, amountFen, direction, reason, createdBy | 审计不可删除 |
 | Settlement | id, consultantId, period, grossFen, adjustmentFen, payableFen, status, paidAt | 月度结算 |
 | AuditLog | id, actorId, action, resourceType, resourceId, beforeJson, afterJson, ip, createdAt | 健康资料、授权、解析确认、订单与后台配置均需记录 |
-| ConsultantAvailability | id, consultantId, status, dailyLimit, freeConsultEnabled, updatedAt | 健管师当前接单状态与免费咨询资格 |
-| ConsultantSchedule | id, consultantId, slotDate, startAt, endAt, capacity, bookedCount, status | 可预约时段与容量控制 |
-| ConsultationBooking | id, userId, consultantId, type, scheduledAt, status, source | 免费/语音/复诊咨询预约与状态 |
-| ConsultationQueue | id, bookingId, priority, assignmentMode, assignedAt, timeoutAt | 待分配、人工派单与自动派单 |
-| VoiceSession | id, bookingId, provider, status, startedAt, endedAt, durationSec | 语音服务 Provider 记录 |
-| Notification | id, recipientId, type, title, body, resourceType, resourceId, readAt | 客户与健管师通知中心 |
+| ConsultantAvailability | id, consultantId, status, dailyLimit, freeConsultEnabled, updatedAt | 公司配置的健管师接单状态、名额与免费资格；健管师端只读 |
+| ConsultantSchedule | id, consultantId, slotDate, startAt, endAt, capacity, bookedCount, status | 公司配置的服务时段与容量；不允许健管师端自行编辑 |
+| ConsultationQueue | id, consultationRequestId, priority, assignmentMode, assignedAt, timeoutAt, status | 待分配、人工派单、自动派单与超时重派 |
+| Notification | id, recipientId, type, title, body, resourceType, resourceId, readAt, deliveredAt | 客户与健管师通知中心；resourceId 可直达房间 |
 | HealthCheckCenter | id, name, address, phone, mapUrl, enabled | 后台维护指定体检中心 |
 | HealthCheckPackage | id, centerId, name, items, priceFen, enabled | 体检中心检查套餐 |
 | EducationArticle | id, title, category, body, status, publishedAt, updatedAt | 卫教内容与发布状态 |

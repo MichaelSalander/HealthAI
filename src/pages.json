@@ -7,6 +7,12 @@
   },
   "pages": [
     { "path": "pages/home/index", "style": { "navigationBarTitleText": "首页" } },
+    { "path": "pages/demo/index", "style": { "navigationBarTitleText": "本地流程验收" } },
+    { "path": "pages/consultant/workbench", "style": { "navigationBarTitleText": "健管师工作台" } },
+    { "path": "pages/consultant/clients", "style": { "navigationBarTitleText": "我的客户" } },
+    { "path": "pages/consultant/insights", "style": { "navigationBarTitleText": "AI洞察" } },
+    { "path": "pages/consultant/profile", "style": { "navigationBarTitleText": "我的资料" } },
+    { "path": "pages/consultants/notices", "style": { "navigationBarTitleText": "咨询通知" } },
     { "path": "pages/health/index", "style": { "navigationBarTitleText": "我的健康" } },
     { "path": "pages/health/manual", "style": { "navigationBarTitleText": "手动记录" } },
     { "path": "pages/health/profile", "style": { "navigationBarTitleText": "健康档案" } },
@@ -20,7 +26,9 @@
     ,{ "path": "pages/plans/formal", "style": { "navigationBarTitleText": "正式方案" } }
     ,{ "path": "pages/services/addons", "style": { "navigationBarTitleText": "增值服务" } }
     ,{ "path": "pages/order/confirm", "style": { "navigationBarTitleText": "订单确认" } }
-    ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "1V1咨询" } }
+    ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "咨询房间" } }
+    ,{ "path": "pages/consultation/waiting", "style": { "navigationBarTitleText": "等待配对" } }
+    ,{ "path": "pages/consultant/room", "style": { "navigationBarTitleText": "咨询房间" } }
     ,{ "path": "pages/trends/index", "style": { "navigationBarTitleText": "历史趋势" } }
     ,{ "path": "pages/records/index", "style": { "navigationBarTitleText": "服务记录" } }
     ,{ "path": "pages/orders/index", "style": { "navigationBarTitleText": "我的订单" } }

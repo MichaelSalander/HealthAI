@@ -100,6 +100,9 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(request.body.data.status, 'queued')
 
   const admin = await login('admin')
+  const users = await api('/api/v1/admin/users', { headers: auth(admin) })
+  assert.equal(users.response.status, 200)
+  assert.ok(users.body.data.some(item => item.id === 'u-001' && item.role === 'customer'))
   const categories = await api('/api/v1/consultant-categories')
   assert.equal(categories.response.status, 200)
   assert.equal(categories.body.data.length, 9)

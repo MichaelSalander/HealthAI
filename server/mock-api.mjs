@@ -193,6 +193,17 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { code: 0, data })
   }
   if (route === '/api/status' && req.method === 'GET') return send(res, 200, { code: 0, data: { service: 'healthai-api', version: apiVersion, status: 'ok' } })
+  if (route === '/api/admin/users' && req.method === 'GET') {
+    const actor = requireActor(req, ['admin']); const workflow = state.workflow || { consultants: [], bookings: [], consultationRequests: [] }
+    const customerIds = new Set([...Object.keys(state.profiles || {}), ...Object.keys(state.reports || {}), ...Object.keys(state.observations || {}), ...Object.keys(state.orders || {}), ...workflow.bookings.map(item => item.userId), ...workflow.consultationRequests.map(item => item.userId)])
+    const customers = [...customerIds].map(id => {
+      const request = [...workflow.consultationRequests].reverse().find(item => item.userId === id); const booking = [...workflow.bookings].reverse().find(item => item.userId === id)
+      const consultantId = request?.consultantId || booking?.consultantId; const consultant = workflow.consultants.find(item => item.id === consultantId)
+      return { id, name: request?.userName || booking?.userName || (id === 'u-001' ? '张小美' : id), role: 'customer', consultant: consultant?.name || '', status: request?.status === 'in_progress' || booking?.status === 'accepted' ? '服务中' : '正常', reportCount: (state.reports[id] || []).length, observationCount: (state.observations[id] || []).length, createdAt: state.profiles[id]?.updatedAt || null }
+    })
+    const consultants = workflow.consultants.map(item => ({ id: item.id, name: item.name, role: 'consultant', consultant: '', status: item.status === 'offline' ? '离线' : '已认证', reportCount: 0, observationCount: 0, createdAt: null }))
+    return send(res, 200, { code: 0, data: [...customers, ...consultants] })
+  }
   if (route === '/api/consultant-categories' && req.method === 'GET') {
     state.consultantCategories ||= structuredClone(initialState.consultantCategories)
     const counts = new Map((state.workflow?.consultants || []).flatMap(item => (item.categories || []).map(category => [category, 1])).reduce((all, [category]) => all.set(category, (all.get(category) || 0) + 1), new Map()))

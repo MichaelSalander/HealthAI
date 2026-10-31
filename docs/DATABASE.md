@@ -41,9 +41,10 @@
 | ConsultantSchedule | id, consultantId, slotDate, startAt, endAt, capacity, bookedCount, status | 公司配置的服务时段与容量；不允许健管师端自行编辑 |
 | ConsultationQueue | id, consultationRequestId, priority, assignmentMode, assignedAt, timeoutAt, status | 待分配、人工派单、自动派单与超时重派 |
 | Notification | id, recipientId, type, title, body, resourceType, resourceId, readAt, deliveredAt | 客户与健管师通知中心；resourceId 可直达房间 |
-| HealthCheckCenter | id, name, address, phone, mapUrl, enabled | 后台维护指定体检中心 |
+| HealthCheckCenter | id, name, address, distanceKm, phone, items, enabled, sort | 后台维护指定体检中心与可检查项目 |
 | HealthCheckPackage | id, centerId, name, items, priceFen, enabled | 体检中心检查套餐 |
 | EducationArticle | id, title, category, body, status, publishedAt, updatedAt | 卫教内容与发布状态 |
+| ContentSettings | companyTitle, companySubtitle, companyPhilosophy, privacyTitle, privacyDescription, resultDisclaimer, resultConsultationTitle, resultConsultationDescription | Admin 可调整的公司介绍、隐私与健康结果文案 |
 
 ### 采集与版本规则
 - 原始报告文件、文件 hash、上传时间与报告日期必须保留；重新上传不得覆盖旧版本。

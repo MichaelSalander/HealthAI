@@ -1,8 +1,8 @@
-import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, DemoSession } from '../../../src/types/consultation'
+import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, DemoSession, HealthTimelineEvent } from '../../../src/types/consultation'
 import type { AIHealthReport, HealthProfile, HealthReport, Observation } from '../../../src/types/domain'
 import { getToken } from '@/utils/auth'
 export type ConsultantClient = { id: string; name: string; profile: Record<string, string>; observationCount: number; reportCount: number; lastActivityAt: string | null; status: string }
-export type ConsultantClientHealth = { profile: HealthProfile | null; reports: HealthReport[]; observations: Observation[]; aiReport: AIHealthReport | null }
+export type ConsultantClientHealth = { profile: HealthProfile | null; reports: HealthReport[]; observations: Observation[]; timeline: HealthTimelineEvent[]; aiReport: AIHealthReport | null }
 export type ConsultantInsight = { id: string; userId: string; userName: string; title: string; body: string; summary: string; riskLevel: string; status: 'pending' | 'approved' | 'rejected'; reviewedAt: string | null; reviewedBy: string | null; generatedAt: string }
 const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let session: DemoSession | undefined

@@ -1,5 +1,6 @@
 export type DemoRole = 'customer' | 'consultant' | 'admin'
 export interface DemoSession { id: string; role: DemoRole; name: string; token: string }
+export interface HealthTimelineEvent { id: string; type: 'report' | 'report_review' | 'report_error' | 'observation'; title: string; status: string; detail: string; occurredAt: string }
 export interface ConsultationSlot { id: string; startAt: string; capacity: number; remaining: number }
 export interface ConsultationConsultant { id: string; name: string; level: string; categories?: string[]; status: 'available' | 'full' | 'offline'; freeConsultEnabled: boolean; dailyLimit: number; bookedCount: number; slots: ConsultationSlot[] }
 export interface ConsultationRequest { id: string; userId: string; userName: string; consultantId: string; consultantName: string; slotId: string; slotStartAt: string; status: 'pending_assignment' | 'assigned' | 'accepted' | 'completed' | 'cancelled'; createdAt: string }

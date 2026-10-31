@@ -46,7 +46,10 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   if (clientHealth && method === 'GET') {
     requireRole('consultant', 'admin'); const userId = clientHealth[1]; const allowed = actor.role === 'admin' || db.bookings.some(item => item.userId === userId && item.consultantId === actor.id) || db.consultationRequests.some(item => item.userId === userId && item.consultantId === actor.id)
     if (!allowed) fail('无权查看该客户资料', 403)
-    return { profile: state.profiles[userId] || null, reports: (state.reports[userId] || []).map(({ storagePath, ...report }) => ({ ...report, fileAvailable: Boolean(storagePath) })), observations: state.observations[userId] || [], aiReport: (state.aiReports[userId] || [])[0] || null }
+    const reports = (state.reports[userId] || []).map(({ storagePath, ...report }) => ({ ...report, fileAvailable: Boolean(storagePath) }))
+    const observations = state.observations[userId] || []
+    const timeline = [...reports.map(report => ({ id: `report-${report.id}`, type: report.status === '待确认' ? 'report_review' : report.status === '解析失败' ? 'report_error' : 'report', title: report.name, status: report.status, detail: report.status === '待确认' ? '等待客户确认解析指标' : report.status === '解析失败' ? '报告解析失败，需要人工处理' : '体检报告已进入健康档案', occurredAt: report.date })), ...observations.map(item => ({ id: `observation-${item.id}`, type: 'observation', title: item.name, status: item.status, detail: `${item.value} ${item.unit}`.trim(), occurredAt: item.measuredAt }))].sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt)))
+    return { profile: state.profiles[userId] || null, reports, observations, timeline, aiReport: (state.aiReports[userId] || [])[0] || null }
   }
   if (route === '/api/consultant/insights' && method === 'GET') {
     requireRole('consultant', 'admin')

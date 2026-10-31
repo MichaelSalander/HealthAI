@@ -61,6 +61,9 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   const health = await api('/healthz')
   assert.equal(health.response.status, 200)
   assert.equal(health.body.data.status, 'ok')
+  const publicCenters = await api('/api/v1/health-centers')
+  assert.equal(publicCenters.response.status, 200)
+  assert.ok(publicCenters.body.data.every(item => item.enabled))
 
   const customer = await login('customer', 'u-001')
   const profile = await api('/api/v1/health/profile', { headers: auth(customer) })
@@ -119,6 +122,11 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(request.body.data.status, 'queued')
 
   const admin = await login('admin')
+  const adminCenters = await api('/api/v1/health-centers', { headers: auth(admin) })
+  assert.equal(adminCenters.response.status, 200)
+  assert.ok(adminCenters.body.data.length >= publicCenters.body.data.length)
+  const savedCenters = await api('/api/v1/health-centers', { method: 'PUT', headers: auth(admin), body: JSON.stringify(adminCenters.body.data) })
+  assert.equal(savedCenters.response.status, 200)
   const contentSettings = await api('/api/v1/content-settings')
   assert.equal(contentSettings.response.status, 200)
   assert.ok(contentSettings.body.data.metricExplanations.length > 0)

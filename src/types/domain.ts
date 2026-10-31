@@ -11,6 +11,7 @@ export interface HealthTrend { label: string; value: number }
 export interface HealthProfileCompleteness { score: number; completedFields: number; totalFields: number; missingFields: string[] }
 export interface HealthDataSources { reports: HealthReport[]; manualEntries: Observation[]; lastUpdatedAt: string | null }
 export interface HealthResultSummary { score: number; summary: string; attention: Observation[]; generatedAt: string | null }
+export interface HealthCheckCenter { id: string; name: string; address: string; distanceKm?: number; phone?: string; items: string[]; enabled: boolean; sort: number }
 export interface Consultant { id: string; name: string; level: ConsultantLevel; categories: string[]; rating: number; clients: number; avatar: string }
 export type ConsultantAvailabilityStatus = 'online' | 'available' | 'full' | 'offline'
 export interface ConsultantAvailability { consultantId: string; status: ConsultantAvailabilityStatus; dailyLimit: number; bookedCount: number; freeConsultEnabled: boolean; slots: string[] }

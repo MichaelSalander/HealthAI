@@ -112,6 +112,8 @@
 - `GET /health/ai-reports/latest` → `AIHealthReport`
 
 ## Consultants / Commerce
+- `GET /api/v1/health-centers` → enabled health-check centers for customers; Admin receives all centers
+- `PUT /api/v1/health-centers` → Admin-only center configuration persistence
 - `GET /consultants?category=&level=&keyword=` → `Consultant[]`
 - `GET /consultants/:id` → `ConsultantDetail`
 - `GET /service-plans?consultant_id=` → `ServicePlan[]`

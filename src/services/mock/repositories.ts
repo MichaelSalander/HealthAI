@@ -67,6 +67,7 @@ export const healthRepository: HealthRepository = {
   },
   async listDataSources() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthDataSources>('/health/data-sources', undefined, session) },
   async getLatestResult() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthResultSummary>('/health/results/latest', undefined, session) },
+  async listHealthCenters() { return consultationRepository.healthCenters() },
   async listReports() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthReport[]>('/health/reports', undefined, session); reports = remote; writeStorage('healthai_reports', reports); return remote },
   async uploadReport(fileName, kind = 'general', upload) { const report = await consultationRepository.uploadDemoReport(fileName, kind, upload); reports = [report, ...reports.filter(item => item.id !== report.id)]; writeStorage('healthai_reports', reports); return report },
   async getReportExtraction(reportId: string) { return consultationRepository.reportExtraction(reportId) },

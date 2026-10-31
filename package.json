@@ -19,6 +19,7 @@
     "preview:h5": "node tools/serve-dist.cjs",
     "doctor": "node tools/verify-environment.cjs",
     "verify:production": "node tools/verify-production.mjs",
+    "verify:release": "pnpm run doctor && pnpm run typecheck && pnpm test:consultation && pnpm test:api && pnpm test:production && pnpm run build:h5 && pnpm --dir console run typecheck && pnpm --dir console run build",
     "verify": "pnpm run doctor && pnpm run typecheck && pnpm run build:h5"
   },
   "dependencies": {

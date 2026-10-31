@@ -13,6 +13,12 @@ pnpm run build:h5
 cd console && pnpm install --frozen-lockfile && pnpm run build
 ```
 
+发布前也可以在项目根目录直接执行完整验收：
+
+```bash
+pnpm run verify:release
+```
+
 微信小程序正式构建时不要修改并提交 `src/manifest.json` 中的 AppID，使用本地环境变量注入：
 
 ```powershell

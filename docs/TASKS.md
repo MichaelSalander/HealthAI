@@ -118,6 +118,7 @@
 - [x] T462 公司介绍与隐私文案 CMS：Admin 配置并由 C 端关于我们页面读取
 - [x] T463 正式微信小程序构建：通过环境变量注入 AppID，构建后自动恢复测试 manifest
 - [x] T464 生产就绪探针：验证上传目录、运营账号与微信配置后才允许部署验收通过；`pnpm test:production` 覆盖未配置/已配置两种状态
+- [x] T465 发布验收命令：`pnpm run verify:release` 统一执行环境、类型、API、生产就绪、H5 与 Admin 检查
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 
 ## 验收命令

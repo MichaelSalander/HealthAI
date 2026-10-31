@@ -54,10 +54,17 @@ pm2 startup
 确认：
 
 ```bash
+curl https://你的API域名/healthz
 curl https://你的API域名/api/v1/status
 ```
 
-应该返回 `status: ok`。
+两个请求都应该返回 `status: ok`。部署后也可以用项目内置脚本验证：
+
+```bash
+HEALTHAI_VERIFY_BASE_URL=https://你的API域名 pnpm run verify:production
+```
+
+如果同时设置 `HEALTHAI_VERIFY_USERNAME` 与 `HEALTHAI_VERIFY_PASSWORD`，脚本还会验证 Admin 登录。
 
 ## 4. 反向代理
 

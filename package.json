@@ -15,6 +15,7 @@
     "typecheck": "vue-tsc --noEmit",
     "preview:h5": "node tools/serve-dist.cjs",
     "doctor": "node tools/verify-environment.cjs",
+    "verify:production": "node tools/verify-production.mjs",
     "verify": "pnpm run doctor && pnpm run typecheck && pnpm run build:h5"
   },
   "dependencies": {

@@ -125,6 +125,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {})
   const url = new URL(req.url, 'http://localhost')
   const route = url.pathname.replace(/^\/api\/v1(?=\/|$)/, '/api')
+  // 供 Cloudways/Nginx/监控探针使用，不需要登录，也不暴露业务数据。
+  if (route === '/healthz' && req.method === 'GET') return send(res, 200, { code: 0, data: { service: 'healthai-api', status: 'ok', version: apiVersion } })
   if (route === '/api/auth/operator-login' && req.method === 'POST') {
     const body = await readBody(req)
     if (!['admin', 'consultant'].includes(body.role) || typeof body.username !== 'string' || typeof body.password !== 'string') return send(res, 400, { code: 400, message: '登录信息不完整' })

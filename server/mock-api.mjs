@@ -47,7 +47,7 @@ const initialState = {
     { id: 'cat-07', name: '心理压力', enabled: true, sort: 7 }, { id: 'cat-08', name: '抗衰老', enabled: true, sort: 8 },
     { id: 'cat-09', name: '亚健康管理', enabled: true, sort: 9 }
   ],
-  contentSettings: { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。' },
+  contentSettings: { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。', metricExplanations: [{ code: 'ldl-c', name: 'LDL-C（低密度脂蛋白）', explanation: '血脂相关指标，结果略高时建议结合饮食、运动和历史趋势观察。', enabled: true, sort: 1 }, { code: 'fasting-glucose', name: '空腹血糖', explanation: '血糖相关指标，单次结果不能单独下结论，建议结合复查与生活方式记录。', enabled: true, sort: 2 }, { code: 'alt', name: 'ALT（丙氨酸转氨酶）', explanation: '肝功能相关指标，建议结合既往结果与专业人员建议综合理解。', enabled: true, sort: 3 }] },
   educationArticles: [
     { id: 'edu-001', title: '认识血糖与日常饮食', category: '血糖管理', summary: '了解日常饮食与血糖波动的关系。', body: '规律饮食、均衡搭配并结合个人健康状况，是日常血糖管理的基础。', status: 'published', publishedAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', sort: 1 },
     { id: 'edu-002', title: '如何看懂体检报告中的血脂指标', category: '指标解读', summary: '用简单方式认识总胆固醇、LDL-C 等常见指标。', body: '指标应结合参考范围、既往趋势与专业人员建议综合理解。', status: 'published', publishedAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z', sort: 2 },
@@ -86,6 +86,7 @@ const databaseMode = process.env.HEALTHAI_DB || 'sqlite'
 const sqliteStore = databaseMode === 'json' ? null : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
 state.contentSettings ||= structuredClone(initialState.contentSettings)
+state.contentSettings.metricExplanations ||= structuredClone(initialState.contentSettings.metricExplanations)
 state.consultantCategories ||= structuredClone(initialState.consultantCategories)
 state.educationArticles ||= structuredClone(initialState.educationArticles)
 
@@ -240,8 +241,9 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/content-settings' && req.method === 'PUT') {
     requireActor(req, ['admin'])
     const settings = await readBody(req)
-    if (!settings || typeof settings.resultDisclaimer !== 'string' || typeof settings.resultConsultationTitle !== 'string' || typeof settings.resultConsultationDescription !== 'string') { const error = new Error('结果文案格式无效'); error.status = 400; throw error }
-    state.contentSettings = { resultDisclaimer: settings.resultDisclaimer.trim(), resultConsultationTitle: settings.resultConsultationTitle.trim(), resultConsultationDescription: settings.resultConsultationDescription.trim() }
+    if (!settings || typeof settings.resultDisclaimer !== 'string' || typeof settings.resultConsultationTitle !== 'string' || typeof settings.resultConsultationDescription !== 'string' || !Array.isArray(settings.metricExplanations)) { const error = new Error('结果文案格式无效'); error.status = 400; throw error }
+    const codes = new Set(); const metricExplanations = settings.metricExplanations.map((item, index) => { const code = String(item?.code || '').trim(); const name = String(item?.name || '').trim(); const explanation = String(item?.explanation || '').trim(); if (!code || !name || !explanation || codes.has(code)) { const error = new Error('指标解释格式无效或代码重复'); error.status = 400; throw error } codes.add(code); return { code, name, explanation, enabled: Boolean(item.enabled), sort: Number.isInteger(item.sort) ? item.sort : index + 1 } })
+    state.contentSettings = { resultDisclaimer: settings.resultDisclaimer.trim(), resultConsultationTitle: settings.resultConsultationTitle.trim(), resultConsultationDescription: settings.resultConsultationDescription.trim(), metricExplanations }
     persist()
     return send(res, 200, { code: 0, data: state.contentSettings })
   }

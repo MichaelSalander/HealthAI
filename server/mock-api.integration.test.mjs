@@ -100,6 +100,11 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(request.body.data.status, 'queued')
 
   const admin = await login('admin')
+  const contentSettings = await api('/api/v1/content-settings')
+  assert.equal(contentSettings.response.status, 200)
+  assert.ok(contentSettings.body.data.metricExplanations.length > 0)
+  const savedContent = await api('/api/v1/content-settings', { method: 'PUT', headers: auth(admin), body: JSON.stringify(contentSettings.body.data) })
+  assert.equal(savedContent.response.status, 200)
   const adminEducation = await api('/api/v1/education/articles', { headers: auth(admin) })
   assert.equal(adminEducation.response.status, 200)
   assert.ok(adminEducation.body.data.some(item => item.status === 'draft'))

@@ -2,7 +2,8 @@ import { getToken } from "@/utils/auth";
 
 export type HomeEntry = { id: string; title: string; subtitle: string; route: string; enabled: boolean; sort: number };
 export type ServicePlan = { id: string; name: string; level: string; cycle: string; priceFen: number; description: string; enabled: boolean };
-export type ContentSettings = { resultDisclaimer: string; resultConsultationTitle: string; resultConsultationDescription: string };
+export type MetricExplanation = { code: string; name: string; explanation: string; enabled: boolean; sort: number };
+export type ContentSettings = { resultDisclaimer: string; resultConsultationTitle: string; resultConsultationDescription: string; metricExplanations: MetricExplanation[] };
 export type ConsultantCategory = { id: string; name: string; count: number; enabled: boolean; sort: number };
 export type AdminUser = { id: string; name: string; role: "customer" | "consultant"; consultant: string; status: string; reportCount: number; observationCount: number; createdAt: string | null };
 export type EducationArticle = { id: string; title: string; category: string; summary: string; body: string; status: "draft" | "published"; publishedAt?: string; updatedAt: string; sort: number };

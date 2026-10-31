@@ -58,6 +58,7 @@
 - [x] T454 健管师手机端正式登录：生产模式使用后端 operator-login，禁止写死演示账号并持久化工作台 Session
 - [x] T455 正式模式冒烟：production API 启动、健康探针、CORS、健管师 operator-login 与越权 403 已验证
 - [x] T456 健管师资料时间线：报告待确认/解析异常/指标变更统一返回并在 Web 与手机端展示
+- [x] T457 指标基础解释 CMS：Admin 可配置指标说明，客户健康结果通过 Content Repository 读取
 - [x] T406j AI 结果由后端生成：仅基于已确认 Observation，保存来源版本并供客户/健管师读取
 - [x] T423 客户订单持久化：方案下单、SQLite 保存、Mock Payment Success 与订单查询均走 API
 - [x] T406k API Bearer Token 改为服务器签名并带过期时间，服务重启后仍可验证；篡改 Token 返回 401

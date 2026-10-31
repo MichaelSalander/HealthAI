@@ -76,7 +76,7 @@ const fallbackHomeEntries: HomeEntry[] = [
   { id: 'report', title: '查看健康报告', subtitle: '历史数据管理', route: '/pages/report/index', enabled: true, sort: 4 },
   { id: 'consultant', title: '找健康管理师', subtitle: '专业解读与指导', route: '/pages/consultants/index', enabled: true, sort: 5 }
 ]
-const fallbackContentSettings: ContentSettings = { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。' }
+const fallbackContentSettings: ContentSettings = { resultDisclaimer: '以上为基础健康结果，仅供参考，不作为医疗诊断或治疗建议。', resultConsultationTitle: '建议你咨询健康管理师', resultConsultationDescription: '获取专业的分析解读和个性化建议。', metricExplanations: [{ code: 'ldl-c', name: 'LDL-C（低密度脂蛋白）', explanation: '血脂相关指标，结果略高时建议结合饮食、运动和历史趋势观察。', enabled: true, sort: 1 }, { code: 'fasting-glucose', name: '空腹血糖', explanation: '血糖相关指标，单次结果不能单独下结论，建议结合复查与生活方式记录。', enabled: true, sort: 2 }, { code: 'alt', name: 'ALT（丙氨酸转氨酶）', explanation: '肝功能相关指标，建议结合既往结果与专业人员建议综合理解。', enabled: true, sort: 3 }], }
 const fallbackEducationArticles: EducationArticle[] = [
   { id: 'edu-001', title: '认识血糖与日常饮食', category: '血糖管理', summary: '了解日常饮食与血糖波动的关系。', body: '规律饮食、均衡搭配并结合个人健康状况，是日常血糖管理的基础。', status: 'published', publishedAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', sort: 1 },
   { id: 'edu-002', title: '如何看懂体检报告中的血脂指标', category: '指标解读', summary: '用简单方式认识总胆固醇、LDL-C 等常见指标。', body: '指标应结合参考范围、既往趋势与专业人员建议综合理解。', status: 'published', publishedAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z', sort: 2 }

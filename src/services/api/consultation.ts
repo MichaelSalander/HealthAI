@@ -85,6 +85,7 @@ export const consultationRepository = {
   async heartbeat(action = false) { return request('/consultations/presence', 'POST', { action }, await this.customer()) },
   async uploadDemoReport(fileName: string, kind: 'blood_test' | 'general', upload?: { mimeType: string; sizeBytes: number; fileBase64: string }) { const session = await this.customer(); return request<HealthReport>('/health/reports', 'POST', { fileName, kind, ...upload }, session) },
   async reportExtraction(reportId: string) { return request<ReportExtraction>(`/health/reports/${reportId}/extractions`, 'GET', undefined, await this.customer()) },
+  async retryReportExtraction(reportId: string) { return request<ReportExtraction>(`/health/reports/${reportId}/retry-extraction`, 'POST', {}, await this.customer()) },
   async confirmReport(reportId: string, candidates: ReportExtraction['candidates']) { return request<Observation[]>(`/health/reports/${reportId}/confirm`, 'POST', { candidates }, await this.customer()) },
   async addDemoBloodReport() { return this.uploadDemoReport('血液检测演示报告.pdf', 'blood_test') },
   async createRequest(mode: ConsultationMode, requestId = `consult-${Date.now()}`) { return request<ConsultationRequestV2>('/consultation-requests', 'POST', { mode, serviceType: 'free_consult', requestId }, await this.customer()) },

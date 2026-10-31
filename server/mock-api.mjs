@@ -345,8 +345,13 @@ const server = http.createServer(async (req, res) => {
     const report = { id: reportId, name: fileName, kind, date: measuredAt, status: kind === 'blood_test' ? '待确认' : '解析成功', source: '体检报告', uploadedBy: actor.id, mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined, sizeBytes: Number.isFinite(body.sizeBytes) ? body.sizeBytes : undefined, storagePath, parseMode: 'mock' }
     if (kind === 'blood_test') {
       state.reportExtractions ||= {}
-      const extraction = await ocrProvider.extract({ reportId, measuredAt })
-      state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
+      try {
+        const extraction = await ocrProvider.extract({ reportId, measuredAt })
+        state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
+      } catch (error) {
+        report.status = '解析失败'
+        state.reportExtractions[reportId] = { id: `extract-${reportId}`, reportId, provider: ocrProvider.name, status: 'failed', candidates: [], errorMessage: error instanceof Error ? error.message : '报告解析失败，请稍后重试', createdAt: new Date().toISOString() }
+      }
     }
     state.reports[id] = [report, ...(state.reports[id] || [])]; persist(); return send(res, 201, { code: 0, data: reportView(report) })
   }
@@ -369,11 +374,28 @@ const server = http.createServer(async (req, res) => {
     if (!(state.reports[actor.id] || []).some(report => report.id === reportId)) { const error = new Error('报告不存在'); error.status = 404; throw error }
     return send(res, 200, { code: 0, data: state.reportExtractions?.[reportId] || { id: `extract-${reportId}`, reportId, provider: 'none', status: 'confirmed', candidates: [], createdAt: new Date().toISOString() } })
   }
+  const retryExtractionRoute = route.match(/^\/api\/health\/reports\/([^/]+)\/retry-extraction$/)
+  if (retryExtractionRoute && req.method === 'POST') {
+    const actor = requireActor(req, ['customer']); const reportId = retryExtractionRoute[1]
+    const report = (state.reports[actor.id] || []).find(item => item.id === reportId)
+    const previous = state.reportExtractions?.[reportId]
+    if (!report || report.kind !== 'blood_test') { const error = new Error('血液检测报告不存在'); error.status = 404; throw error }
+    if (!previous || previous.status !== 'failed') { const error = new Error('当前报告不需要重新解析'); error.status = 409; throw error }
+    try {
+      const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date })
+      state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
+      report.status = '待确认'; persist(); return send(res, 200, { code: 0, data: state.reportExtractions[reportId] })
+    } catch (error) {
+      previous.errorMessage = error instanceof Error ? error.message : '报告解析失败，请稍后重试'; previous.createdAt = new Date().toISOString(); persist()
+      return send(res, 200, { code: 0, data: previous })
+    }
+  }
   const confirmRoute = route.match(/^\/api\/health\/reports\/([^/]+)\/confirm$/)
   if (confirmRoute && req.method === 'POST') {
     const actor = requireActor(req, ['customer']); const reportId = confirmRoute[1]; const report = (state.reports[actor.id] || []).find(item => item.id === reportId); const extraction = state.reportExtractions?.[reportId]
     if (!report || !extraction) { const error = new Error('报告解析结果不存在'); error.status = 404; throw error }
     if (extraction.status === 'confirmed') return send(res, 200, { code: 0, data: (state.observations[actor.id] || []).filter(item => item.sourceRef === reportId) })
+    if (extraction.status === 'failed') { const error = new Error(extraction.errorMessage || '报告解析失败，请重新解析'); error.status = 409; throw error }
     const body = await readBody(req); const candidates = Array.isArray(body.candidates) ? body.candidates : extraction.candidates
     if (!candidates.length) { const error = new Error('至少需要确认一项指标'); error.status = 400; throw error }
     const confirmedAt = new Date().toISOString(); const observations = candidates.map(candidate => ({ id: `o-${Date.now()}-${candidate.code}`, code: String(candidate.code), name: String(candidate.name), value: String(candidate.value), unit: String(candidate.unit), reference: String(candidate.reference || ''), status: ['正常', '偏高', '偏低'].includes(candidate.status) ? candidate.status : '正常', measuredAt: String(candidate.measuredAt || report.date), sourceType: 'report', sourceRef: reportId, confidence: Number(candidate.confidence || 0), confirmedAt }))

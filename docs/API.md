@@ -78,6 +78,7 @@
 - `GET /api/v1/health/observations` / `POST /api/v1/health/observations` → confirmed/manual observations
 - `GET /api/v1/health/reports` / `POST /api/v1/health/reports` → report metadata and base64 file upload
 - `GET /api/v1/health/reports/:id/extractions` → mock OCR candidates
+- `POST /api/v1/health/reports/:id/retry-extraction` → retry a failed blood-test extraction; returns candidates or the latest failure state
 - `POST /api/v1/health/reports/:id/confirm` → confirm/correct candidates and create observations
 - `GET /api/v1/health/ai-reports` → latest saved AI report
 - `POST /api/v1/health/ai-reports/generate` → generate from confirmed observations on the server

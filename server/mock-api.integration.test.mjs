@@ -86,6 +86,8 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
     body: JSON.stringify({ candidates: extraction.body.data.candidates })
   })
   assert.equal(confirmed.response.status, 200)
+  const retryAfterConfirmation = await api(`/api/v1/health/reports/${reportId}/retry-extraction`, { method: 'POST', headers: auth(customer), body: '{}' })
+  assert.equal(retryAfterConfirmation.response.status, 409)
 
   const eligibility = await api('/api/v1/consultations/eligibility', { headers: auth(customer) })
   assert.equal(eligibility.body.data.hasBloodTest, true)

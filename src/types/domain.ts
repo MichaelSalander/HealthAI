@@ -5,7 +5,7 @@ export interface HealthProfile { id: string; userId: string; gender: string; bir
 export interface Observation { id: string; code: string; name: string; value: string; unit: string; reference: string; status: MetricStatus; measuredAt: string; sourceType?: 'manual' | 'report' | 'import'; sourceRef?: string; confidence?: number; confirmedAt?: string }
 export interface HealthReport { id: string; name: string; date: string; status: '待解析' | '待确认' | '解析成功' | '解析失败'; source: string; kind?: 'blood_test' | 'general'; mimeType?: string; sizeBytes?: number; fileAvailable?: boolean; storagePath?: string; parseMode?: 'mock' | 'provider'; uploadedBy?: string }
 export interface ReportExtractionCandidate { id: string; code: string; name: string; value: string; unit: string; reference: string; status: MetricStatus; confidence: number; measuredAt: string }
-export interface ReportExtraction { id: string; reportId: string; provider: string; status: 'needs_confirmation' | 'confirmed'; candidates: ReportExtractionCandidate[]; createdAt: string; confirmedAt?: string }
+export interface ReportExtraction { id: string; reportId: string; provider: string; status: 'needs_confirmation' | 'confirmed' | 'failed'; candidates: ReportExtractionCandidate[]; createdAt: string; confirmedAt?: string; errorMessage?: string }
 export interface HealthTrend { label: string; value: number }
 export interface Consultant { id: string; name: string; level: ConsultantLevel; categories: string[]; rating: number; clients: number; avatar: string }
 export type ConsultantAvailabilityStatus = 'online' | 'available' | 'full' | 'offline'

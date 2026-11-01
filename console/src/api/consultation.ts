@@ -1,4 +1,4 @@
-import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, DemoSession, HealthTimelineEvent } from '../../../src/types/consultation'
+import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, ConsultationRoom, ConsultationMessage, DemoSession, HealthTimelineEvent } from '../../../src/types/consultation'
 import type { AIHealthReport, HealthProfile, HealthReport, Observation } from '../../../src/types/domain'
 import { getToken } from '@/utils/auth'
 export type ConsultantClient = { id: string; name: string; profile: Record<string, string>; observationCount: number; reportCount: number; lastActivityAt: string | null; status: string }
@@ -19,6 +19,8 @@ export const consultationAdminApi = {
   requestQueue: () => request<{ requests: ConsultationRequestV2[]; presence: ConsultationPresence[] }>('/consultation-requests/queue'),
   clients: () => request<ConsultantClient[]>('/consultant/clients'),
   notices: () => request<ConsultationNotice[]>('/consultation-notifications'),
+  conversations: () => request<ConsultationRoom[]>('/conversations'),
+  messages: (conversationId: string) => request<{ items: ConsultationMessage[]; nextCursor: string | null }>(`/conversations/${encodeURIComponent(conversationId)}/messages`),
   assign: (id: string, consultantId: string) => request(`/consultations/bookings/${id}/assign`, 'POST', { consultantId }),
   autoAssign: () => request<{ assignedCount: number }>('/consultations/auto-assign', 'POST', {}),
   assignRequest: (id: string, consultantId: string) => request<ConsultationRequestV2>(`/consultation-requests/${id}/assign`, 'POST', { consultantId }),

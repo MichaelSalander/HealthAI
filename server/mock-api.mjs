@@ -123,6 +123,12 @@ function secretTextEqual(left, right) {
   const b = createHmac('sha256', sessionSecret).update(String(right || '')).digest()
   return timingSafeEqual(a, b)
 }
+// 客戶只需要看到基礎健康結果；健管師專用的完整洞察不得透過客戶 API 洩露。
+function toCustomerAiReport(report) {
+  if (!report) return null
+  const { consultantInsight, ...customerReport } = report
+  return customerReport
+}
 function resolvedCorsOrigin(req) {
   if (corsOrigins.includes('*')) return '*'
   const requestOrigin = req.headers.origin
@@ -481,7 +487,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (route === '/api/health/ai-reports' && req.method === 'GET') {
     const actor = requireActor(req, ['customer'])
-    return send(res, 200, { code: 0, data: (state.aiReports[actor.id] || [])[0] || null })
+    return send(res, 200, { code: 0, data: toCustomerAiReport((state.aiReports[actor.id] || [])[0]) })
   }
   if (route === '/api/health/results/latest' && req.method === 'GET') {
     const actor = requireActor(req, ['customer']); const observations = state.observations[actor.id] || []; const latest = (state.aiReports[actor.id] || [])[0] || null
@@ -491,10 +497,10 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer']); const id = actor.id; const observations = state.observations[id] || []
     const sourceObservationVersion = observations.map(item => item.id).join(',')
     const latest = (state.aiReports[id] || [])[0]
-    if (latest && latest.sourceObservationVersion === sourceObservationVersion) return send(res, 200, { code: 0, data: latest })
+    if (latest && latest.sourceObservationVersion === sourceObservationVersion) return send(res, 200, { code: 0, data: toCustomerAiReport(latest) })
     const generated = await aiProvider.generate({ observations })
     const report = { id: `ai-${Date.now()}`, generatedAt: new Date().toISOString(), sourceObservationVersion, ...generated, generatedBy: actor.id, provider: aiProvider.name }
-    state.aiReports[id] = [report, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: report })
+    state.aiReports[id] = [report, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: toCustomerAiReport(report) })
   }
   if (route === '/api/health/ai-reports' && req.method === 'POST') {
     const actor = requireActor(req, ['customer', 'consultant', 'admin']); const id = actor.id; const report = await readBody(req); state.aiReports[id] = [{ ...report, generatedBy: actor.id }, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: state.aiReports[id][0] })

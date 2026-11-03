@@ -125,6 +125,7 @@
 - [x] T469 LLM Provider 稳定性收口：正式兼容接口增加请求超时、结果字段校验与输出长度上限
 - [x] T470 整合测试环境隔离：API 测试强制使用 Mock OCR／LLM，避免本机 Provider 环境变量污染验收结果
 - [x] T471 三端聊天权限验收：Admin 可只读查看真实房间消息，会员与健管师按房间关系隔离，未授权客户返回 403
+- [x] T472 AI 结果权限收口：客户 API 仅返回基础摘要，健管师／Admin 才能读取完整 `consultantInsight`，并加入 HTTP 整合测试
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 
 ## 验收命令

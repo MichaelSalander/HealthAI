@@ -17,6 +17,7 @@ const databaseUrl = process.env.HEALTHAI_DATABASE_URL
 const uploadRoot = process.env.HEALTHAI_UPLOAD_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads')
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
+const allowMockProviders = process.env.HEALTHAI_ALLOW_MOCK_PROVIDERS === 'true'
 const sessionSecret = process.env.HEALTHAI_SESSION_SECRET || 'development-only-change-this-secret'
 const sessionTtlSeconds = Number(process.env.HEALTHAI_SESSION_TTL_SECONDS || 86400)
 const corsOrigin = process.env.HEALTHAI_CORS_ORIGIN || '*'
@@ -143,6 +144,8 @@ function readinessIssues() {
   } catch { issues.push('upload_directory_not_writable') }
   if (isProduction && !operatorAccounts.length) issues.push('operator_accounts_not_configured')
   if (isProduction && (!wechatConfig.appId || !wechatConfig.appSecret)) issues.push('wechat_credentials_not_configured')
+  if (isProduction && !allowMockProviders && (process.env.OCR_PROVIDER || 'mock') === 'mock') issues.push('ocr_provider_is_mock')
+  if (isProduction && !allowMockProviders && (process.env.LLM_PROVIDER || 'mock') === 'mock') issues.push('llm_provider_is_mock')
   return issues
 }
 function requireActor(req, roles = []) {

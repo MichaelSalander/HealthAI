@@ -55,9 +55,11 @@ HEALTHAI_OPERATOR_ACCOUNTS_JSON=[{"id":"admin-001","role":"admin","name":"管理
 WECHAT_APP_ID=真实小程序AppID
 WECHAT_APP_SECRET=真实小程序AppSecret
 WECHAT_TEST_MODE=false
+# 正式环境不要开启；未接入真实 Provider 时 /readyz 会保持 not_ready
+HEALTHAI_ALLOW_MOCK_PROVIDERS=false
 ```
 
-生产环境禁止使用 `touristappid`、`WECHAT_TEST_MODE=true` 或 `demo-login`。
+生产环境禁止使用 `touristappid`、`WECHAT_TEST_MODE=true`、`demo-login` 或未明确豁免的 Mock AI/OCR。`HEALTHAI_ALLOW_MOCK_PROVIDERS=true` 只允许本地／内部验收，不能用于正式用户环境；正式环境未接入真实 Provider 时 `/readyz` 会返回 `not_ready`。
 Admin 与健管师工作台使用后端 `operator-login`，账号通过 `HEALTHAI_OPERATOR_ACCOUNTS_JSON` 注入；支持 `passwordHash`（scrypt），不要把账号密码写入前端环境变量或提交到代码库。本地旧配置的 `password` 仍可用，但正式环境应移除。
 
 产生密码哈希：

@@ -18,6 +18,7 @@ async function startApi({ configured }) {
     environment.HEALTHAI_OPERATOR_ACCOUNTS_JSON = JSON.stringify([{ id: 'admin-test', role: 'admin', name: '测试管理员', username: 'admin-test', password: 'change-me' }])
     environment.WECHAT_APP_ID = 'wx-readiness-test'
     environment.WECHAT_APP_SECRET = 'readiness-secret'
+    environment.HEALTHAI_ALLOW_MOCK_PROVIDERS = 'true'
   }
   const child = spawn(process.execPath, ['server/mock-api.mjs'], { cwd: path.resolve(import.meta.dirname, '..'), env: environment, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = ''
@@ -50,4 +51,10 @@ test('production readiness passes with required deployment credentials', async (
   assert.equal(result.response.status, 200)
   assert.equal(result.body.data.status, 'ready')
   assert.deepEqual(result.body.data.issues, [])
+})
+
+test('production readiness rejects mock AI and OCR unless explicitly allowed', async () => {
+  const result = await startApi({ configured: false })
+  assert.ok(result.body.data.issues.includes('ocr_provider_is_mock'))
+  assert.ok(result.body.data.issues.includes('llm_provider_is_mock'))
 })

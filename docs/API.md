@@ -41,7 +41,7 @@
 
 咨询请求状态：requested → queued → assigned → waiting_consultant → in_progress → completed；有效请求可取消、过期或重新派单。
 房间内消息状态：sending → sent → delivered → read；语音状态：idle → calling → connected → ended/failed。
-`POST /health/reports` 接受显式 `kind: blood_test | general`，目前仍为 Mock 解析。
+`POST /health/reports` 接受显式 `kind: blood_test | general`；解析由 `OCR_PROVIDER` 控制，正式环境可使用 OpenAI Responses API，并在写入正式健康数据前要求用户确认。
 错误采用 HTTP 400/401/403/404/409/422，前端显示后端错误，不伪造操作成功。
 
 统一前缀 `/api/v1`，JSON UTF-8；金额字段以 `*_fen` 命名。第一阶段由同名 Mock Repository 实现。
@@ -77,9 +77,9 @@
 - `POST /api/v1/auth/mock-login` → mock access token and customer identity
 - `GET /api/v1/health/profile` → health profile；用户身份从 Bearer Session 取得
 - `PUT /api/v1/health/profile` → update health profile
-- `GET /api/v1/health/observations` / `POST /api/v1/health/observations` → confirmed/manual observations
+- `GET /api/v1/health/observations` / `POST /api/v1/health/observations` → confirmed/manual observations；Observation 可包含 `valueType/category/severity/interpretation/recommendation/sourcePage`
 - `GET /api/v1/health/reports` / `POST /api/v1/health/reports` → report metadata and base64 file upload
-- `GET /api/v1/health/reports/:id/extractions` → mock OCR candidates
+- `GET /api/v1/health/reports/:id/extractions` → OCR candidates（Mock 或配置的正式 Provider）
 - `POST /api/v1/health/reports/:id/retry-extraction` → retry a failed blood-test extraction; returns candidates or the latest failure state
 - `POST /api/v1/health/reports/:id/confirm` → confirm/correct candidates and create observations
 - `GET /api/v1/health/ai-reports` → latest saved AI report

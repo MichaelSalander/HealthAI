@@ -428,11 +428,11 @@ const server = http.createServer(async (req, res) => {
       storagePath = path.relative(uploadRoot, path.join(folder, storedName)).replaceAll(path.sep, '/')
     }
     const reportId = `r-${Date.now()}`; const measuredAt = new Date().toISOString().slice(0, 10)
-    const report = { id: reportId, name: fileName, kind, date: measuredAt, status: kind === 'blood_test' ? '待确认' : '解析成功', source: '体检报告', uploadedBy: actor.id, mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined, sizeBytes: Number.isFinite(body.sizeBytes) ? body.sizeBytes : undefined, storagePath, parseMode: 'mock' }
+    const report = { id: reportId, name: fileName, kind, date: measuredAt, status: kind === 'blood_test' ? '待确认' : '解析成功', source: '体检报告', uploadedBy: actor.id, mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined, sizeBytes: Number.isFinite(body.sizeBytes) ? body.sizeBytes : undefined, storagePath, parseMode: process.env.OCR_PROVIDER || 'mock' }
     if (kind === 'blood_test') {
       state.reportExtractions ||= {}
       try {
-        const extraction = await ocrProvider.extract({ reportId, measuredAt })
+        const extraction = await ocrProvider.extract({ reportId, measuredAt, storagePath: storagePath ? path.join(uploadRoot, storagePath) : undefined })
         state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
       } catch (error) {
         report.status = '解析失败'
@@ -468,7 +468,7 @@ const server = http.createServer(async (req, res) => {
     if (!report || report.kind !== 'blood_test') { const error = new Error('血液检测报告不存在'); error.status = 404; throw error }
     if (!previous || previous.status !== 'failed') { const error = new Error('当前报告不需要重新解析'); error.status = 409; throw error }
     try {
-      const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date })
+      const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date, storagePath: report.storagePath ? path.join(uploadRoot, report.storagePath) : undefined })
       state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
       report.status = '待确认'; persist(); return send(res, 200, { code: 0, data: state.reportExtractions[reportId] })
     } catch (error) {
@@ -484,7 +484,7 @@ const server = http.createServer(async (req, res) => {
     if (extraction.status === 'failed') { const error = new Error(extraction.errorMessage || '报告解析失败，请重新解析'); error.status = 409; throw error }
     const body = await readBody(req); const candidates = Array.isArray(body.candidates) ? body.candidates : extraction.candidates
     if (!candidates.length) { const error = new Error('至少需要确认一项指标'); error.status = 400; throw error }
-    const confirmedAt = new Date().toISOString(); const observations = candidates.map(candidate => ({ id: `o-${Date.now()}-${candidate.code}`, code: String(candidate.code), name: String(candidate.name), value: String(candidate.value), unit: String(candidate.unit), reference: String(candidate.reference || ''), status: ['正常', '偏高', '偏低'].includes(candidate.status) ? candidate.status : '正常', measuredAt: String(candidate.measuredAt || report.date), sourceType: 'report', sourceRef: reportId, confidence: Number(candidate.confidence || 0), confirmedAt }))
+    const confirmedAt = new Date().toISOString(); const observations = candidates.map(candidate => ({ id: `o-${Date.now()}-${candidate.code}`, code: String(candidate.code), name: String(candidate.name), value: String(candidate.value), unit: String(candidate.unit), reference: String(candidate.reference || ''), status: ['正常', '偏高', '偏低'].includes(candidate.status) ? candidate.status : '正常', measuredAt: String(candidate.measuredAt || report.date), sourceType: 'report', sourceRef: reportId, confidence: Number(candidate.confidence || 0), confirmedAt, valueType: candidate.valueType === 'qualitative' ? 'qualitative' : 'numeric', category: typeof candidate.category === 'string' ? candidate.category : undefined, severity: ['轻度', '中度', '重度'].includes(candidate.severity) ? candidate.severity : undefined, interpretation: typeof candidate.interpretation === 'string' ? candidate.interpretation : undefined, recommendation: typeof candidate.recommendation === 'string' ? candidate.recommendation : undefined, sourcePage: Number.isInteger(candidate.sourcePage) ? candidate.sourcePage : undefined }))
     state.observations[actor.id] = [...observations, ...(state.observations[actor.id] || []).filter(item => item.sourceRef !== reportId)]
     extraction.status = 'confirmed'; extraction.confirmedAt = confirmedAt; report.status = '解析成功'; persist(); return send(res, 200, { code: 0, data: observations })
   }

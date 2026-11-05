@@ -7,9 +7,10 @@ import { consultationRepository } from '../api/consultation'
 type StorageKey = 'healthai_profile' | 'healthai_reports' | 'healthai_observations' | 'healthai_orders'
 const apiBase = (() => {
   const configured = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
-  if (configured) return configured.replace(/\/$/, '')
   const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
-  return hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' ? '/api' : 'http://localhost:8787/api'
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://127.0.0.1:8787/api'
+  if (configured) return configured.replace(/\/$/, '')
+  return hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' ? '/api' : 'http://127.0.0.1:8787/api'
 })()
 const hasConfiguredApi = Boolean((import.meta as any).env?.VITE_API_BASE_URL)
 

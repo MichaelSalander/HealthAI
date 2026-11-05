@@ -127,7 +127,11 @@
 - [x] T471 三端聊天权限验收：Admin 可只读查看真实房间消息，会员与健管师按房间关系隔离，未授权客户返回 403
 - [x] T472 AI 结果权限收口：客户 API 仅返回基础摘要，健管师／Admin 才能读取完整 `consultantInsight`，并加入 HTTP 整合测试
 - [x] T473 生产 Provider 安全闸门：正式环境默认拒绝 Mock OCR／LLM，仅内部验收可显式设置 `HEALTHAI_ALLOW_MOCK_PROVIDERS=true`
+- [x] T474 个人页结构化健康数据：个人中心读取后端报告与 Observation，显示指标数量、报告数量、最近更新与最近指标；解析模型补充定性发现、分类、解释、建议与来源页码
+- [x] T475 本地空资料验收：增加可恢复的本地资料重置脚本，清除测试会员／报告／聊天资料后验证建档、手动指标、Mock 报告解析、Admin 派单与客户／健管师文字聊天
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
+- [x] T501a OpenAI Responses OCR Provider：PDF 上传、结构化候选指标、用户确认前置、临时文件清理；生产环境通过 `OCR_PROVIDER=openai` 启用
+- [ ] T501b OpenAI AI 分析正式验收：配置 API Key、模型与预算上限后，用真实报告完成 OCR 与 AI 结果验收
 
 ## 验收命令
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。

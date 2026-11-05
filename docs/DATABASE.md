@@ -12,7 +12,7 @@
 | HealthReportVersion | id, reportId, fileUrl, fileHash, uploadedAt, parserVersion | 每次上传/重新解析形成版本 |
 | ReportExtractionJob | id, reportVersionId, provider, status, errorCode, startedAt, finishedAt | OCR/规则/LLM 均异步；不直接写正式 Observation |
 | Biomarker | id, code, name, unit, referenceRange | code unique，可后台配置 |
-| Observation | id, profileId, biomarkerId, rawValue, normalizedValue, unit, sourceType, sourceRef, confidence, status, measuredAt, confirmedAt | `raw/candidate/confirmed/superseded`；确认前不得进入最终结果 |
+| Observation | id, profileId, biomarkerId, rawValue, normalizedValue, valueType, unit, referenceRange, category, severity, interpretation, recommendation, sourceType, sourceRef, sourcePage, confidence, status, measuredAt, confirmedAt | 支持数值指标与“结节/纤维化”等定性发现；确认前不得进入最终结果 |
 | ObservationRevision | id, observationId, beforeJson, afterJson, action, actorId, createdAt | 修正与确认的不可变历史 |
 | AIHealthReport | id, profileId, sourceObservationVersion, status, summary, riskLevel, payload, generatedAt | C 端基础结果版本化；只基于 confirmed 数据 |
 | Consultant | id, name, levelId, serviceStatus, load | 公司建号 |
@@ -49,6 +49,7 @@
 ### 采集与版本规则
 - 原始报告文件、文件 hash、上传时间与报告日期必须保留；重新上传不得覆盖旧版本。
 - 解析结果只作为 candidate；用户确认/修改后才产生 confirmed Observation。
+- 解析候选除了数值外，必须保留检查分类、异常程度、基础解释、后续建议与原报告页码，避免只保存 PDF 或 Markdown 而丢失可检索的个人健康数据。
 - 同一指标可以有多笔 Observation，以 measuredAt 区分；最新结果不得抹除历史趋势。
 - 删除请求按合规策略执行逻辑删除/脱敏，并保留必要的审计记录，不做物理级级联删除。
 - 所有敏感写操作写入 AuditLog；退款通过负向流水冲正，不删除历史。

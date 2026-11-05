@@ -3,6 +3,7 @@ server/*.sqlite
 server/healthai.sqlite-shm
 server/healthai.sqlite-wal
 server/uploads/
+server/backups/
 .npm-cache/
 .pnpm-store/
 dist/

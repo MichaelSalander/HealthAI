@@ -2,7 +2,9 @@ import { uniApi as uni } from '../platform/uni'
 import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, ConsultationRoom, ConsultationMessage, VoiceSession, ServiceRecord, ConsultationMode, DemoRole, DemoSession, HealthTimelineEvent } from '../../types/consultation'
 import type { AIHealthReport, ConsentRecord, HealthCheckCenter, HealthProfile, HealthReport, Observation, Order, ReportExtraction, ServicePlan } from '../../types/domain'
 
-const base = (((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8787/api/v1').replace(/\/$/, '')
+const configuredBase = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
+const browserHost = typeof window !== 'undefined' ? window.location.hostname : ''
+const base = ((browserHost === 'localhost' || browserHost === '127.0.0.1') ? 'http://127.0.0.1:8787/api/v1' : (configuredBase || '/api/v1')).replace(/\/$/, '')
 let customerSession: DemoSession | undefined
 const customerSessionKey = 'healthai_customer_session'
 let consultantSession: DemoSession | undefined

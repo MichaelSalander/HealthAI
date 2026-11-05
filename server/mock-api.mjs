@@ -15,6 +15,7 @@ const dataFile = process.env.HEALTHAI_DATA_FILE || path.join(path.dirname(fileUR
 const databaseFile = process.env.HEALTHAI_DB_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'healthai.sqlite')
 const databaseUrl = process.env.HEALTHAI_DATABASE_URL
 const uploadRoot = process.env.HEALTHAI_UPLOAD_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads')
+const customerWebRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
 const allowMockProviders = process.env.HEALTHAI_ALLOW_MOCK_PROVIDERS === 'true'
@@ -175,6 +176,32 @@ function sendFile(res, status, buffer, contentType, fileName) {
 function reportView(report) {
   const { storagePath, ...publicReport } = report
   return { ...publicReport, fileAvailable: Boolean(storagePath) }
+}
+const staticContentTypes = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf'
+}
+function serveCustomerWeb(req, res, pathname) {
+  if (!fs.existsSync(path.join(customerWebRoot, 'index.html'))) return false
+  const requested = decodeURIComponent(pathname || '/').replace(/^\/+/, '')
+  const candidate = path.resolve(customerWebRoot, requested || 'index.html')
+  const isSafe = candidate === customerWebRoot || candidate.startsWith(`${customerWebRoot}${path.sep}`)
+  const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(customerWebRoot, 'index.html')
+  if (!filePath.startsWith(`${customerWebRoot}${path.sep}`) && filePath !== path.join(customerWebRoot, 'index.html')) return false
+  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
+  fs.createReadStream(filePath).pipe(res)
+  return true
 }
 
 const server = http.createServer(async (req, res) => {
@@ -508,6 +535,7 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/health/ai-reports' && req.method === 'POST') {
     const actor = requireActor(req, ['customer', 'consultant', 'admin']); const id = actor.id; const report = await readBody(req); state.aiReports[id] = [{ ...report, generatedBy: actor.id }, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: state.aiReports[id][0] })
   }
+  if (req.method === 'GET' && serveCustomerWeb(req, res, url.pathname)) return
   return send(res, 404, { code: 404, message: 'Not Found' })
   } catch (error) { return send(res, error.status || (error instanceof SyntaxError ? 400 : 500), { code: error.code || error.status || 500, message: error.status ? error.message : '请求处理失败，请重试' }) }
 })

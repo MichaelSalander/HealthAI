@@ -15,7 +15,9 @@ const dataFile = process.env.HEALTHAI_DATA_FILE || path.join(path.dirname(fileUR
 const databaseFile = process.env.HEALTHAI_DB_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'healthai.sqlite')
 const databaseUrl = process.env.HEALTHAI_DATABASE_URL
 const uploadRoot = process.env.HEALTHAI_UPLOAD_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads')
-const customerWebRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const customerWebRoot = path.join(projectRoot, 'dist', 'build', 'h5')
+const legacyCustomerWebRoot = path.join(projectRoot, 'dist')
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
 const allowMockProviders = process.env.HEALTHAI_ALLOW_MOCK_PROVIDERS === 'true'
@@ -193,12 +195,13 @@ const staticContentTypes = {
   '.ttf': 'font/ttf'
 }
 function serveCustomerWeb(req, res, pathname) {
-  if (!fs.existsSync(path.join(customerWebRoot, 'index.html'))) return false
+  const root = fs.existsSync(path.join(customerWebRoot, 'index.html')) ? customerWebRoot : legacyCustomerWebRoot
+  if (!fs.existsSync(path.join(root, 'index.html'))) return false
   const requested = decodeURIComponent(pathname || '/').replace(/^\/+/, '')
-  const candidate = path.resolve(customerWebRoot, requested || 'index.html')
-  const isSafe = candidate === customerWebRoot || candidate.startsWith(`${customerWebRoot}${path.sep}`)
-  const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(customerWebRoot, 'index.html')
-  if (!filePath.startsWith(`${customerWebRoot}${path.sep}`) && filePath !== path.join(customerWebRoot, 'index.html')) return false
+  const candidate = path.resolve(root, requested || 'index.html')
+  const isSafe = candidate === root || candidate.startsWith(`${root}${path.sep}`)
+  const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(root, 'index.html')
+  if (!filePath.startsWith(`${root}${path.sep}`) && filePath !== path.join(root, 'index.html')) return false
   res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
   fs.createReadStream(filePath).pipe(res)
   return true

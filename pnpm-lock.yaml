@@ -39,6 +39,9 @@ importers:
       '@dcloudio/types':
         specifier: ^3.4.32
         version: 3.4.32
+      '@dcloudio/uni-components':
+        specifier: 3.0.0-4060620250520001
+        version: 3.0.0-4060620250520001(postcss@8.5.29)(rollup@4.64.6)(supports-color@7.2.0)(vue@3.4.21(typescript@5.7.3))
       '@dcloudio/uni-mp-weixin':
         specifier: 3.0.0-4060620250520001
         version: 3.0.0-4060620250520001(debug@4.4.3(supports-color@7.2.0))(postcss@8.5.29)(rollup@4.64.6)(supports-color@7.2.0)(vue@3.4.21(typescript@5.7.3))

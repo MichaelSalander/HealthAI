@@ -16,7 +16,9 @@ const unread = computed(() => items.value.filter(item => !item.read).length)
 
 async function load() {
   try {
-    session.value ||= await api.login('consultant', 'c-101')
+    const stored = uni.getStorageSync('healthai_consultant_session')
+    if (!stored) { uni.redirectTo({ url: '/pages/consultant/login' }); return }
+    session.value ||= JSON.parse(String(stored)) as DemoSession
     items.value = await api.notices(session.value)
     error.value = ''
   } catch (e) { error.value = (e as Error).message } finally { loading.value = false }

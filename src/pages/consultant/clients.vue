@@ -8,7 +8,7 @@ import { consultationRepository as api } from '../../services/api/consultation'
 import { uniApi as uni } from '../../services/platform/uni'
 import type { ConsultationRequest, DemoSession } from '../../types/consultation'
 const items = ref<ConsultationRequest[]>([]); const error = ref(''); const session = ref<DemoSession>()
-async function load() { try { session.value ||= await api.login('consultant', 'c-101'); items.value = await api.bookings(session.value); error.value = '' } catch (e) { error.value = (e as Error).message } }
+async function load() { try { const stored = uni.getStorageSync('healthai_consultant_session'); if (!stored) { uni.redirectTo({ url: '/pages/consultant/login' }); return }; session.value ||= JSON.parse(String(stored)) as DemoSession; items.value = await api.bookings(session.value); error.value = '' } catch (e) { error.value = (e as Error).message } }
 onShow(load)
 </script>
 <template><view class="page consultant-page"><view class="head"><view><text class="eyebrow">客户关系</text><text class="title">我的客户</text><text class="subtitle">公司分配给你的客户与咨询记录</text></view><text class="count">{{ items.length }} 位</text></view><text v-if="error" class="danger">{{ error }}</text><AppCard v-if="!items.length" class="empty"><text class="empty-title">暂无分配客户</text><text class="muted">新客户配对后会自动出现在这里</text></AppCard><ConsultationBookingCard v-for="item in items" :key="item.id" :booking="item"><button class="health-btn" @click="uni.navigateTo({ url: `/pages/consultant/insights?userId=${item.userId}` })">查看健康资料</button></ConsultationBookingCard><ConsultantBottomNav active="clients" /></view></template>

@@ -5,6 +5,8 @@ import type { AIHealthReport, ConsentRecord, HealthCheckCenter, HealthProfile, H
 const configuredBase = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
 const browserHost = typeof window !== 'undefined' ? window.location.hostname : ''
 const base = ((browserHost === 'localhost' || browserHost === '127.0.0.1') ? 'http://127.0.0.1:8787/api/v1' : (configuredBase || '/api/v1')).replace(/\/$/, '')
+const env = (import.meta as any).env || {}
+const isDemoMode = Boolean(env.DEV || env.VITE_DEMO_MODE === 'true' || env.VITE_AUTH_MODE === 'demo')
 let customerSession: DemoSession | undefined
 const customerSessionKey = 'healthai_customer_session'
 let consultantSession: DemoSession | undefined
@@ -52,8 +54,9 @@ export const consultationRepository = {
     if (role === 'consultant') {
       const saved = consultantSession || readConsultantSession()
       if (saved) { consultantSession = saved; return Promise.resolve(saved) }
-      if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat') return Promise.reject(new Error('请先登录健管师账号'))
+      if (!isDemoMode) return Promise.reject(new Error('请先登录健管师账号'))
     }
+    if (role === 'customer' && !isDemoMode && env.VITE_AUTH_MODE !== 'wechat') return Promise.reject(new Error('请先完成微信登录'))
     return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => role === 'customer' ? persistCustomerSession(session) : session)
   },
   operatorLogin(username: string, password: string) {

@@ -4,12 +4,13 @@ import PrimaryButton from '../../components/PrimaryButton.vue'
 import { uniApi as uni } from '../../services/platform/uni'
 
 const go = (url: string) => uni.navigateTo({ url })
+const share = () => uni.showToast({ title: '健管师名片已准备分享' })
 const specialties = ['体重管理', '慢病管理', '睡眠健康', '营养调理']
 const certifications = ['国家注册营养师', '健康管理师（高级）', '慢性病管理专项认证']
 </script>
 <template>
   <view class="page detail-page">
-    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">健管师详情</text><text class="share">□</text></view>
+    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">健管师详情</text><text class="share" @click="share">□</text></view>
     <view class="profile-hero"><view class="profile-photo"><image class="profile-image" src="/static/images/consultants/li-xiaowen.png" mode="aspectFill" /><text class="online-dot">●</text></view><view class="profile-main"><text class="name">李晓雯</text><text class="muted">高级健康管理师</text><text class="rating">★ 4.9 <span>｜523条评价</span></text></view><text class="online">在线</text></view>
     <view class="stats"><view><text class="stat-value">5年</text><text class="muted">从业经验</text></view><view><text class="stat-value">600+</text><text class="muted">服务客户</text></view><view><text class="stat-value">98%</text><text class="muted">客户满意度</text></view></view>
     <view class="section-title">擅长领域</view><view class="tags"><text v-for="item in specialties" :key="item" class="tag">{{ item }}</text></view>

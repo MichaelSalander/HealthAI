@@ -10,15 +10,18 @@ const route = (getCurrentPages().at(-1) as any)?.options as Record<string, strin
 commerceRepository.listPlans().then(items => { plans.value = items })
 const addon = computed<ServicePlan | undefined>(() => route?.name ? { id: `addon-${route.name}`, name: decodeURIComponent(route.name), level: '初级', cycle: '月', priceFen: Number(route.price || 0), description: '专项健康增值服务' } : undefined)
 const plan = computed(() => addon.value || plans.value.find(item => item.id === route?.planId) || plans.value[0])
+const payment = ref<'wechat' | 'alipay'>('wechat')
+const chooseCoupon = () => uni.showModal({ title: '优惠信息', content: '当前暂无可用优惠券', showCancel: false })
+const shareOrder = () => uni.showToast({ title: '订单页面已准备分享' })
 const pay = async () => { if (!plan.value) return; await commerceRepository.createMockOrder(plan.value); uni.showToast({ title: 'Mock支付成功' }); setTimeout(() => uni.navigateTo({ url: '/pages/orders/index' }), 500) }
 </script>
 <template>
   <view class="page order-page">
-    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">订单确认</text><text class="share">□</text></view>
+    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">订单确认</text><text class="share" @click="shareOrder">□</text></view>
     <AppCard class="consultant"><image class="avatar avatar-image" src="/static/images/consultants/li-xiaowen.png" mode="aspectFill" /><view class="grow"><text class="name">{{ plan?.name || '健康管理服务' }}</text><text class="muted">李晓雯 · 专属健康管理师</text><text class="rating">★ 4.9　523条评价</text></view></AppCard>
     <view class="section-title">服务内容</view><AppCard class="content-card"><text v-for="item in ['健康档案建立与分析','定制化健康改善计划','每日健康打卡与提醒','每月1次1V1咨询','专属健康管理师','月度健康报告']" :key="item" class="check">●　{{ item }}</text></AppCard>
-    <view class="section-title">支付方式</view><AppCard class="payment-card"><view class="pay-row selected"><text class="pay-icon wechat">微</text><text class="grow">微信支付</text><text class="radio">●</text></view><view class="pay-row"><text class="pay-icon alipay">支</text><text class="grow">支付宝支付</text><text class="radio empty">○</text></view></AppCard>
-    <view class="section-title">优惠信息</view><AppCard class="coupon"><text class="muted">暂无可用优惠券</text><text class="arrow">›</text></AppCard>
+    <view class="section-title">支付方式</view><AppCard class="payment-card"><view class="pay-row" :class="{ selected: payment === 'wechat' }" @click="payment = 'wechat'"><text class="pay-icon wechat">微</text><text class="grow">微信支付</text><text class="radio">{{ payment === 'wechat' ? '●' : '○' }}</text></view><view class="pay-row" :class="{ selected: payment === 'alipay' }" @click="payment = 'alipay'"><text class="pay-icon alipay">支</text><text class="grow">支付宝支付</text><text class="radio" :class="{ empty: payment !== 'alipay' }">{{ payment === 'alipay' ? '●' : '○' }}</text></view></AppCard>
+    <view class="section-title">优惠信息</view><AppCard class="coupon" @click="chooseCoupon"><text class="muted">暂无可用优惠券</text><text class="arrow">›</text></AppCard>
     <view class="pay-bar"><view><text class="muted">应付金额</text><text class="total">¥{{ (plan?.priceFen || 0) / 100 }}</text></view><PrimaryButton label="立即支付" @click="pay" /></view>
   </view>
 </template>

@@ -10,7 +10,7 @@ const apiBase = lanHost ? `http://${lanHost}:8787/api/v1` : 'http://localhost:87
 const childEnv = { ...process.env, HOST: bindHost, HEALTHAI_CORS_ORIGIN: lanHost ? `http://${lanHost}:5175` : (process.env.HEALTHAI_CORS_ORIGIN || 'http://localhost:5175') }
 const services = [
   { name: 'API', port: 8787, cwd: root, args: ['tools/run-api.mjs'], url: `http://${lanHost || 'localhost'}:8787/api/v1/status`, env: childEnv },
-  { name: 'uni-app', port: 5175, cwd: root, args: ['node_modules/@dcloudio/vite-plugin-uni/bin/uni.js', '-p', 'h5', '--host', bindHost, '--port', '5175'], url: `http://${lanHost || 'localhost'}:5175/#/pages/demo/index`, env: { ...childEnv, VITE_API_BASE_URL: apiBase } },
+  { name: 'uni-app', port: 5175, cwd: root, args: ['node_modules/@dcloudio/vite-plugin-uni/bin/uni.js', '-p', 'h5', '--host', bindHost, '--port', '5175'], url: `http://${lanHost || 'localhost'}:5175/#/pages/demo/index`, env: { ...childEnv, VITE_API_BASE_URL: apiBase, VITE_DEMO_MODE: 'true' } },
   { name: 'Admin', port: 8848, cwd: path.join(root, 'console'), args: ['node_modules/vite/bin/vite.js', '--host', bindHost, '--port', '8848'], url: `http://${lanHost || 'localhost'}:8848/dispatch.html`, env: { ...childEnv, VITE_API_BASE_URL: apiBase } }
 ]
 async function listening(port) { return new Promise(resolve => { const socket = net.connect(port, '127.0.0.1'); socket.once('connect', () => { socket.destroy(); resolve(true) }); socket.once('error', () => resolve(false)) }) }

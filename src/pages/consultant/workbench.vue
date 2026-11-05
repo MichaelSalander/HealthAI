@@ -16,7 +16,8 @@ const notices = ref<ConsultationNotice[]>([])
 const error = ref('')
 const saving = ref(false)
 const initializing = ref(true)
-const isDemoMode = Boolean(!(import.meta as any).env?.VITE_AUTH_MODE)
+const env = (import.meta as any).env || {}
+const isDemoMode = Boolean(env.DEV || env.VITE_DEMO_MODE === 'true' || env.VITE_AUTH_MODE === 'demo')
 let timer: ReturnType<typeof setInterval> | undefined
 let knownNoticeIds = new Set<string>()
 let noticesLoaded = false
@@ -27,9 +28,12 @@ const unreadCount = computed(() => notices.value.filter(item => !item.read).leng
 async function load() {
   try {
     if (!session.value) {
-      const authMode = (import.meta as any).env?.VITE_AUTH_MODE
-      if (authMode === 'wechat' && !uni.getStorageSync('healthai_consultant_session')) { uni.redirectTo({ url: '/pages/consultant/login' }); return }
-      session.value = await api.login('consultant', 'c-101')
+      const storedSession = uni.getStorageSync('healthai_consultant_session')
+      if (!storedSession && !isDemoMode) {
+        uni.redirectTo({ url: '/pages/consultant/login' })
+        return
+      }
+      session.value = isDemoMode ? await api.login('consultant', 'c-101') : await api.login('consultant')
     }
     const [directory, items, consultationItems, notifications] = await Promise.all([api.directory(), api.bookings(session.value), api.consultationRequests(session.value), api.notices(session.value)])
     consultant.value = directory.find(item => item.id === session.value?.id); bookings.value = items; requests.value = consultationItems; notices.value = notifications

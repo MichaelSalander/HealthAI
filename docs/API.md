@@ -41,7 +41,7 @@
 
 咨询请求状态：requested → queued → assigned → waiting_consultant → in_progress → completed；有效请求可取消、过期或重新派单。
 房间内消息状态：sending → sent → delivered → read；语音状态：idle → calling → connected → ended/failed。
-`POST /health/reports` 接受显式 `kind: blood_test | general`；解析由 `OCR_PROVIDER` 控制，正式环境可使用 OpenAI Responses API，并在写入正式健康数据前要求用户确认。
+`POST /health/reports` 接受显式 `kind: blood_test | general`；解析由 `OCR_PROVIDER` 控制，可使用 `deepseek` 读取文字型 PDF 或 OpenAI Responses API；扫描图片型 PDF 需要图片 OCR Provider，并在写入正式健康数据前要求用户确认。
 错误采用 HTTP 400/401/403/404/409/422，前端显示后端错误，不伪造操作成功。
 
 统一前缀 `/api/v1`，JSON UTF-8；金额字段以 `*_fen` 命名。第一阶段由同名 Mock Repository 实现。

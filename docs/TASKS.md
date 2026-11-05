@@ -132,6 +132,7 @@
 - [x] T475 本地空资料验收：增加可恢复的本地资料重置脚本，清除测试会员／报告／聊天资料后验证建档、手动指标、Mock 报告解析、Admin 派单与客户／健管师文字聊天
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 - [x] T501a OpenAI Responses OCR Provider：PDF 上传、结构化候选指标、用户确认前置、临时文件清理；生产环境通过 `OCR_PROVIDER=openai` 启用
+- [x] T501c DeepSeek PDF OCR Provider：提取文字型 PDF 的文字层并调用 DeepSeek 结构化候选指标；生产环境通过 `OCR_PROVIDER=deepseek` 启用
 - [ ] T501b OpenAI AI 分析正式验收：配置 API Key、模型与预算上限后，用真实报告完成 OCR 与 AI 结果验收
 
 ## 验收命令

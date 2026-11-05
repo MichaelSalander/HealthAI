@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 function parseJson(content) {
   const text = String(content || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -97,8 +98,57 @@ function createOpenAiProvider() {
   }
 }
 
+async function extractPdfText(storagePath) {
+  const buffer = await fs.readFile(storagePath)
+  const loadingTask = getDocument({ data: new Uint8Array(buffer), disableWorker: true })
+  const document = await loadingTask.promise
+  const pages = []
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber)
+    const content = await page.getTextContent()
+    const text = content.items.map(item => typeof item.str === 'string' ? item.str : '').join(' ').replace(/\s+/g, ' ').trim()
+    if (text) pages.push({ pageNumber, text })
+  }
+  return pages
+}
+
+function createDeepSeekProvider() {
+  const apiKey = process.env.OCR_API_KEY || process.env.LLM_API_KEY
+  if (!apiKey) throw new Error('已启用 DeepSeek OCR，但未设置 OCR_API_KEY 或 LLM_API_KEY')
+  const baseUrl = (process.env.OCR_BASE_URL || process.env.LLM_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '')
+  const model = process.env.OCR_MODEL || process.env.LLM_MODEL || 'deepseek-flash'
+  return {
+    name: 'deepseek-pdf-text-ocr',
+    async extract({ reportId, measuredAt, storagePath }) {
+      if (!storagePath) throw new Error('报告原文件不存在，无法执行 DeepSeek OCR')
+      const pages = await extractPdfText(storagePath)
+      const sourceText = pages.map(page => `第${page.pageNumber}页：${page.text}`).join('\n')
+      if (!sourceText) throw new Error('该 PDF 没有可读取的文字层；请改用图片型 OCR Provider')
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(Math.min(Math.max(Number(process.env.OCR_TIMEOUT_MS || 120000), 10000), 300000)),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: '你是体检报告结构化提取器。只返回 JSON，不做诊断。JSON 必须包含 candidates 数组，每个候选必须包含 code、name、value、unit、reference、status、confidence、measuredAt、category、valueType、severity、interpretation、recommendation、sourcePage。只提取原文明确出现的指标，不猜测；无法确认的 status 使用“需确认”。' },
+            { role: 'user', content: `请从以下中国大陆体检报告文字中提取健康指标：\n${sourceText}` }
+          ]
+        })
+      })
+      if (!response.ok) throw new Error(`DeepSeek OCR 请求失败：${response.status}`)
+      const payload = await response.json()
+      const parsed = parseJson(payload.choices?.[0]?.message?.content)
+      return { reportId, provider: 'deepseek-pdf-text-ocr', model, status: 'needs_confirmation', candidates: Array.isArray(parsed.candidates) ? parsed.candidates.map((item, index) => normalizeCandidate(item, reportId, measuredAt, index)) : [] }
+    }
+  }
+}
+
 export function createOcrProvider({ name = process.env.OCR_PROVIDER || 'mock' } = {}) {
   if (name === 'mock') return createMockProvider()
   if (['openai', 'openai-responses'].includes(name)) return createOpenAiProvider()
+  if (['deepseek', 'deepseek-pdf', 'deepseek-text'].includes(name)) return createDeepSeekProvider()
   throw new Error(`暂不支持 OCR Provider: ${name}`)
 }

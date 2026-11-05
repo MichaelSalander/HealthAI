@@ -8,6 +8,7 @@
   "pages": [
     { "path": "pages/home/index", "style": { "navigationBarTitleText": "首页" } },
     { "path": "pages/demo/index", "style": { "navigationBarTitleText": "本地流程验收" } },
+    { "path": "pages/login/index", "style": { "navigationBarTitleText": "客户登录" } },
     { "path": "pages/consultant/workbench", "style": { "navigationBarTitleText": "健管师工作台" } },
     { "path": "pages/consultant/login", "style": { "navigationBarTitleText": "健管师登录" } },
     { "path": "pages/consultant/clients", "style": { "navigationBarTitleText": "我的客户" } },

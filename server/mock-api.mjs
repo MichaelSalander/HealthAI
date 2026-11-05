@@ -47,6 +47,16 @@ function loadOperatorAccounts() {
   ]
 }
 const operatorAccounts = loadOperatorAccounts()
+function loadCustomerAccounts() {
+  const raw = process.env.HEALTHAI_CUSTOMER_ACCOUNTS_JSON
+  if (!raw) return []
+  try {
+    const accounts = JSON.parse(raw)
+    if (!Array.isArray(accounts)) throw new Error('客户账号必须是数组')
+    return accounts.filter(item => item && item.id && item.username && (item.password || item.passwordHash)).map(item => ({ ...item, role: 'customer' }))
+  } catch { throw new Error('HEALTHAI_CUSTOMER_ACCOUNTS_JSON 格式无效') }
+}
+const customerAccounts = loadCustomerAccounts()
 const initialState = {
   consultantCategories: [
     { id: 'cat-01', name: '体重管理', enabled: true, sort: 1 }, { id: 'cat-02', name: '慢病管理', enabled: true, sort: 2 },
@@ -239,6 +249,14 @@ const server = http.createServer(async (req, res) => {
     if (!account) return send(res, operatorAccounts.length ? 401 : 503, { code: operatorAccounts.length ? 401 : 503, message: operatorAccounts.length ? '用户名或密码错误' : '尚未配置运营人员账号' })
     const actor = { id: account.id, role: account.role, name: account.name || account.username }
     return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds } })
+  }
+  if (route === '/api/auth/customer-login' && req.method === 'POST') {
+    const body = await readBody(req)
+    if (typeof body.username !== 'string' || typeof body.password !== 'string' || !body.username.trim() || !body.password) return send(res, 400, { code: 400, message: '账号或密码不能为空' })
+    const account = customerAccounts.find(item => item.username === body.username.trim() && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
+    if (!account) return send(res, customerAccounts.length ? 401 : 503, { code: customerAccounts.length ? 401 : 503, message: customerAccounts.length ? '账号或密码错误' : '尚未配置客户账号' })
+    const actor = { id: account.id, role: 'customer', name: account.name || account.username }
+    return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds, provider: 'password' } })
   }
   if (route === '/api/auth/demo-login' && req.method === 'POST') {
     if (isProduction) return send(res, 403, { code: 403, message: '生产环境不开放演示登录' })

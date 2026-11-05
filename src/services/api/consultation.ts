@@ -62,6 +62,9 @@ export const consultationRepository = {
   operatorLogin(username: string, password: string) {
     return request<DemoSession>('/auth/operator-login', 'POST', { role: 'consultant', username, password }).then(persistConsultantSession)
   },
+  customerPasswordLogin(username: string, password: string) {
+    return request<DemoSession>('/auth/customer-login', 'POST', { username, password }).then(persistCustomerSession)
+  },
   loginWithWechat(role: DemoRole = 'customer') {
     return new Promise<DemoSession>((resolve, reject) => {
       const login = (uni as typeof uni & { login?: (options: { provider: string; success: (result: { code?: string }) => void; fail: (error: unknown) => void }) => void }).login

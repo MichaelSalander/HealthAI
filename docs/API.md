@@ -66,6 +66,7 @@
 - `GET /api/v1/status` → API health status
 - `POST /api/v1/auth/wechat-login` → 小程序端传入 `wx.login()` 的一次性 `code`；AppSecret 只在后端调用微信 `code2Session`，不会返回前端。
 - `POST /api/v1/auth/operator-login` → Admin/运营人员账号登录，Body `{ role, username, password }`；账号由 `HEALTHAI_OPERATOR_ACCOUNTS_JSON` 注入，返回服务器签名 Session。
+- `POST /api/v1/auth/customer-login` → 客户账号密码登录，Body `{ username, password }`；账号由 `HEALTHAI_CUSTOMER_ACCOUNTS_JSON` 注入，返回服务器签名 Session。用于 H5、开发者工具与微信登录不可用时的人工验收，不是演示账号。
 
 ### 微信体验登录
 

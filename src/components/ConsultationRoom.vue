@@ -20,12 +20,13 @@ async function startOrAcceptVoice() { try { if (!voice.value || ['ended', 'faile
 async function complete() { if (!isConsultant.value || !room.value) return; try { await api.completeRoom(room.value.id, '本次咨询已完成，建议继续记录健康数据并按计划复查。', props.session); await load(); emit('completed') } catch (e) { error.value = (e as Error).message } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 function start() { stop(); timer = setInterval(load, 3000) }
+function showRoomMenu() { uni.showModal({ title: '咨询房间', content: '请使用健康摘要、语音咨询和结束咨询完成本次服务。', showCancel: false }) }
 onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined); load(); start() }); onHide(stop); onUnload(stop); onBeforeUnmount(stop)
 </script>
 
 <template>
   <view class="room-shell">
-    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || '咨询房间' }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more">⋯</view></view>
+    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || '咨询房间' }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more" @click="showRoomMenu">⋯</view></view>
     <view class="room-banner"><view class="room-avatar">{{ otherPerson?.name?.slice(0, 1) || '健' }}</view><view class="room-banner-copy"><text class="room-banner-title">健康咨询室</text><text class="room-banner-subtitle">文字沟通随时可用，语音按需开启</text></view><view class="room-live" :class="{ talking: voice?.status === 'connected' }">{{ voice?.status === 'connected' ? '通话中' : '安全咨询' }}</view></view>
     <view v-if="error" class="room-error">{{ error }}</view>
     <scroll-view scroll-y class="message-scroll" :scroll-into-view="messages.length ? `message-${messages[messages.length - 1].id}` : ''"><view class="system-tip">本次咨询内容仅用于健康管理服务，请勿发送紧急医疗信息</view><view v-if="loading" class="loading">正在进入咨询房间…</view><view v-for="message in messages" :id="`message-${message.id}`" :key="message.id" class="message-row" :class="{ mine: message.senderId === props.session.id, system: message.type === 'system' }"><view v-if="message.type === 'system'" class="system-message">{{ message.content }}</view><template v-else><view class="message-avatar">{{ message.senderName.slice(0, 1) }}</view><view class="message-stack"><text v-if="message.senderId !== props.session.id" class="sender-name">{{ message.senderName }}</text><view class="bubble">{{ message.content }}</view><text class="message-time">{{ new Date(message.sentAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }}</text></view></template></view></scroll-view>

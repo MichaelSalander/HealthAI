@@ -2,7 +2,8 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 
-const root = path.resolve(__dirname, '..', 'dist')
+const distRoot = path.resolve(__dirname, '..', 'dist')
+const root = fs.existsSync(path.join(distRoot, 'build', 'h5')) ? path.join(distRoot, 'build', 'h5') : distRoot
 const port = Number(process.env.PORT || 4173)
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg' }
 

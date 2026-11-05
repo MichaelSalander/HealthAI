@@ -26,14 +26,39 @@ type UniRuntime = {
 // Use the platform-provided global uni object. A static @dcloudio/uni-h5 import
 // makes mp-weixin bundles pull H5-only runtime modules and breaks compilation.
 const nativeRuntime = (globalThis as { uni?: Partial<UniRuntime> }).uni ?? {}
+const browserRequest = (options: RequestOptions) => {
+  if (typeof fetch === 'undefined') {
+    options.fail?.()
+    return
+  }
+  const method = (options.method || 'GET').toUpperCase()
+  const requestInit: RequestInit = {
+    method,
+    headers: options.header,
+  }
+  if (method !== 'GET' && method !== 'HEAD' && options.data !== undefined) {
+    requestInit.body = JSON.stringify(options.data)
+  }
+  const controller = new AbortController()
+  const timeout = options.timeout ? setTimeout(() => controller.abort(), options.timeout) : undefined
+  requestInit.signal = controller.signal
+  fetch(options.url, requestInit)
+    .then(async response => {
+      const contentType = response.headers.get('content-type') || ''
+      const data = contentType.includes('application/json') ? await response.json() : await response.text()
+      options.success?.({ statusCode: response.status, data })
+    })
+    .catch(() => options.fail?.())
+    .finally(() => { if (timeout) clearTimeout(timeout) })
+}
 const runtime = {
   ...nativeRuntime,
-  request: nativeRuntime.request ?? (() => { throw new Error('当前运行环境不支持 uni.request') }),
+  request: nativeRuntime.request ?? browserRequest,
   navigateTo: nativeRuntime.navigateTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
   redirectTo: nativeRuntime.redirectTo ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
   reLaunch: nativeRuntime.reLaunch ?? ((options: NavigateOptions) => { if (typeof window !== 'undefined') window.location.hash = `#${options.url}` }),
-  getStorageSync: nativeRuntime.getStorageSync ?? (() => undefined),
-  setStorageSync: nativeRuntime.setStorageSync ?? (() => undefined)
+  getStorageSync: nativeRuntime.getStorageSync ?? ((key: string) => typeof localStorage !== 'undefined' ? localStorage.getItem(key) : undefined),
+  setStorageSync: nativeRuntime.setStorageSync ?? ((key: string, value: string) => { if (typeof localStorage !== 'undefined') localStorage.setItem(key, value) })
 } as UniRuntime
 
 export const uniApi = {

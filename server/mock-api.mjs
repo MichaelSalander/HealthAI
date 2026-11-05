@@ -18,6 +18,7 @@ const uploadRoot = process.env.HEALTHAI_UPLOAD_DIR || path.join(path.dirname(fil
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const customerWebRoot = path.join(projectRoot, 'dist', 'build', 'h5')
 const legacyCustomerWebRoot = path.join(projectRoot, 'dist')
+const adminWebRoot = path.join(projectRoot, 'console', 'dist')
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
 const allowMockProviders = process.env.HEALTHAI_ALLOW_MOCK_PROVIDERS === 'true'
@@ -202,6 +203,18 @@ function serveCustomerWeb(req, res, pathname) {
   const isSafe = candidate === root || candidate.startsWith(`${root}${path.sep}`)
   const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(root, 'index.html')
   if (!filePath.startsWith(`${root}${path.sep}`) && filePath !== path.join(root, 'index.html')) return false
+  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
+  fs.createReadStream(filePath).pipe(res)
+  return true
+}
+function serveAdminWeb(req, res, pathname) {
+  if (!fs.existsSync(path.join(adminWebRoot, 'index.html'))) return false
+  const relativePath = String(pathname || '/').replace(/^\/admin\/?/, '')
+  const requested = decodeURIComponent(relativePath).replace(/^\/+/, '')
+  const candidate = path.resolve(adminWebRoot, requested || 'index.html')
+  const isSafe = candidate === adminWebRoot || candidate.startsWith(`${adminWebRoot}${path.sep}`)
+  const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(adminWebRoot, 'index.html')
+  if (!filePath.startsWith(`${adminWebRoot}${path.sep}`) && filePath !== path.join(adminWebRoot, 'index.html')) return false
   res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
   fs.createReadStream(filePath).pipe(res)
   return true
@@ -538,6 +551,7 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/health/ai-reports' && req.method === 'POST') {
     const actor = requireActor(req, ['customer', 'consultant', 'admin']); const id = actor.id; const report = await readBody(req); state.aiReports[id] = [{ ...report, generatedBy: actor.id }, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: state.aiReports[id][0] })
   }
+  if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) && serveAdminWeb(req, res, url.pathname)) return
   if (req.method === 'GET' && serveCustomerWeb(req, res, url.pathname)) return
   return send(res, 404, { code: 404, message: 'Not Found' })
   } catch (error) { return send(res, error.status || (error instanceof SyntaxError ? 400 : 500), { code: error.code || error.status || 500, message: error.status ? error.message : '请求处理失败，请重试' }) }

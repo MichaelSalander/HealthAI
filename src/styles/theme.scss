@@ -8,6 +8,10 @@ html, body, #app { margin: 0; min-height: 100%; }
 html, body { overflow-x: hidden; }
 body { background: #f4eee8; }
 #app { width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto; overflow-x: hidden; background: #fffaf6; box-shadow: 0 0 36px rgba(109, 61, 36, .10); }
+// H5 桌面预览时保持手机画布比例；真实手机 viewport 小于 600px 时不缩放。
+@media screen and (min-width: 600px) {
+  #app { width: 100vw; max-width: none; zoom: .58; }
+}
 page { display: block; width: 100%; min-height: 100vh; overflow-x: hidden; background: #fffaf6; color: $ink; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
 view, uni-view { display: block; }
 .title, .subtitle, .section-title, .metric-name, .metric-value, .muted, .small { display: block; white-space: normal; }

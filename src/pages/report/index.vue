@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
@@ -13,9 +14,11 @@ const reports = ref<HealthReport[]>([]); const loading = ref(false); const store
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<{ name: string; mimeType: string; sizeBytes: number; fileBase64: string } | null>(null)
 const extraction = ref<ReportExtraction | null>(null)
-const load = async () => { reports.value = await healthRepository.listReports(); const pending = reports.value.find(item => item.status === '待确认' || item.status === '解析失败'); extraction.value = pending ? await healthRepository.getReportExtraction(pending.id) : null }; load()
+const consentGranted = ref(false)
+const load = async () => { const [reportList, consents] = await Promise.all([healthRepository.listReports(), healthRepository.listConsents()]); reports.value = reportList; consentGranted.value = consents.some(item => item.consentType === 'health_data' && item.status === 'granted'); const pending = reports.value.find(item => item.status === '待确认' || item.status === '解析失败'); extraction.value = pending ? await healthRepository.getReportExtraction(pending.id) : null }; onShow(load); load()
 const readBrowserFile = (file: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(new Error('文件读取失败')); reader.readAsDataURL(file) })
 const chooseFile = () => {
+  if (!consentGranted.value) { uni.showToast({ title: '请先完成健康资料授权' }); return uni.navigateTo({ url: '/pages/health/consent' }) }
   if (typeof document !== 'undefined') return fileInput.value?.click()
   const chooseMessageFile = (uni as any).chooseMessageFile
   if (!chooseMessageFile) return uni.showToast({ title: '当前环境暂不支持选取文件' })

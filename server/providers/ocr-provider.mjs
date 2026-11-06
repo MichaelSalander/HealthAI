@@ -155,6 +155,35 @@ async function extractDeepSeekVision({ reportId, measuredAt, storagePath, baseUr
   return { reportId, provider: 'deepseek-vision-pdf-ocr', model, status: 'needs_confirmation', candidates: Array.isArray(parsed.candidates) ? parsed.candidates.map((item, index) => normalizeCandidate(item, reportId, measuredAt, index)) : [] }
 }
 
+async function extractDeepSeekImage({ reportId, measuredAt, storagePath, mimeType, baseUrl, apiKey, model, timeoutMs }) {
+  const normalizedMimeType = /^image\/(png|jpe?g|webp)$/i.test(String(mimeType || ''))
+    ? String(mimeType).toLowerCase()
+    : 'image/png'
+  const buffer = await fs.readFile(storagePath)
+  const imageUrl = `data:${normalizedMimeType};base64,${buffer.toString('base64')}`
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: '你是体检报告结构化提取器。只返回 JSON，不做诊断。JSON 必须包含 candidates 数组，每个候选必须包含 code、name、value、unit、reference、status、confidence、measuredAt、category、valueType、severity、interpretation、recommendation、sourcePage。只提取图片原文明确出现的指标，不猜测；无法确认的 status 使用“需确认”。' },
+        { role: 'user', content: [
+          { type: 'text', text: '请从这张中国大陆体检报告图片中提取明确出现的健康检测指标或检查结果。不要猜测、不要补齐缺失值、不要做医疗诊断。图片作为原报告第 1 页，所有候选的 sourcePage 请填 1；只返回 JSON。' },
+          { type: 'image_url', image_url: { url: imageUrl, detail: process.env.OCR_IMAGE_DETAIL || 'high' } }
+        ] }
+      ]
+    })
+  })
+  if (!response.ok) throw new Error(`DeepSeek 图片 OCR 请求失败：${response.status}`)
+  const payload = await response.json()
+  const parsed = parseJson(payload.choices?.[0]?.message?.content)
+  return { reportId, provider: 'deepseek-image-ocr', model, status: 'needs_confirmation', candidates: Array.isArray(parsed.candidates) ? parsed.candidates.map((item, index) => normalizeCandidate(item, reportId, measuredAt, index)) : [] }
+}
+
 function createDeepSeekProvider() {
   const apiKey = process.env.OCR_API_KEY || process.env.LLM_API_KEY
   if (!apiKey) throw new Error('已启用 DeepSeek OCR，但未设置 OCR_API_KEY 或 LLM_API_KEY')
@@ -162,11 +191,13 @@ function createDeepSeekProvider() {
   const model = process.env.OCR_MODEL || process.env.LLM_MODEL || 'deepseek-flash'
   return {
     name: 'deepseek-pdf-text-ocr',
-    async extract({ reportId, measuredAt, storagePath }) {
+    async extract({ reportId, measuredAt, storagePath, mimeType, fileName }) {
       if (!storagePath) throw new Error('报告原文件不存在，无法执行 DeepSeek OCR')
+      const imageUpload = /^image\/(png|jpe?g|webp)$/i.test(String(mimeType || '')) || /\.(png|jpe?g|webp)$/i.test(String(fileName || storagePath || ''))
+      const timeoutMs = Math.min(Math.max(Number(process.env.OCR_TIMEOUT_MS || 120000), 10000), 300000)
+      if (imageUpload) return extractDeepSeekImage({ reportId, measuredAt, storagePath, mimeType, baseUrl, apiKey, model, timeoutMs })
       const pages = await extractPdfText(storagePath)
       const sourceText = pages.map(page => `第${page.pageNumber}页：${page.text}`).join('\n')
-      const timeoutMs = Math.min(Math.max(Number(process.env.OCR_TIMEOUT_MS || 120000), 10000), 300000)
       if (!sourceText) {
         if (process.env.OCR_ENABLE_VISION !== 'true') throw new Error('该 PDF 没有可读取的文字层；请启用 OCR_ENABLE_VISION=true 后使用图片 OCR')
         return extractDeepSeekVision({ reportId, measuredAt, storagePath, baseUrl, apiKey, model: process.env.OCR_MODEL || 'deepseek-flash', timeoutMs })

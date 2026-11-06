@@ -530,7 +530,7 @@ const server = http.createServer(async (req, res) => {
     if (kind === 'blood_test') {
       state.reportExtractions ||= {}
       try {
-        const extraction = await ocrProvider.extract({ reportId, measuredAt, storagePath: storagePath ? path.join(uploadRoot, storagePath) : undefined })
+        const extraction = await ocrProvider.extract({ reportId, measuredAt, storagePath: storagePath ? path.join(uploadRoot, storagePath) : undefined, mimeType: report.mimeType, fileName: report.name })
         state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
       } catch (error) {
         report.status = '解析失败'
@@ -566,7 +566,7 @@ const server = http.createServer(async (req, res) => {
     if (!report || report.kind !== 'blood_test') { const error = new Error('血液检测报告不存在'); error.status = 404; throw error }
     if (!previous || previous.status !== 'failed') { const error = new Error('当前报告不需要重新解析'); error.status = 409; throw error }
     try {
-      const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date, storagePath: report.storagePath ? path.join(uploadRoot, report.storagePath) : undefined })
+      const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date, storagePath: report.storagePath ? path.join(uploadRoot, report.storagePath) : undefined, mimeType: report.mimeType, fileName: report.name })
       state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
       report.status = '待确认'; persist(); return send(res, 200, { code: 0, data: state.reportExtractions[reportId] })
     } catch (error) {

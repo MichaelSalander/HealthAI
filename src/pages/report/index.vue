@@ -14,7 +14,6 @@ const activePanel = ref<'upload' | 'history'>('upload')
 const reports = ref<HealthReport[]>([])
 const loading = ref(false)
 const store = useHealthStore()
-const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<{ name: string; mimeType: string; sizeBytes: number; fileBase64: string } | null>(null)
 const extraction = ref<ReportExtraction | null>(null)
 const consentGranted = ref(false)
@@ -29,7 +28,20 @@ onShow(load); load()
 const readBrowserFile = (file: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(new Error('文件读取失败')); reader.readAsDataURL(file) })
 const chooseFile = () => {
   if (!consentGranted.value) { uni.showToast({ title: '请先完成健康资料授权' }); return uni.navigateTo({ url: '/pages/health/consent' }) }
-  if (typeof document !== 'undefined') return fileInput.value?.click()
+  if (typeof document !== 'undefined') {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png,image/*,application/pdf'
+    input.style.position = 'fixed'
+    input.style.left = '-9999px'
+    input.onchange = event => {
+      void onFileChange(event)
+      input.remove()
+    }
+    document.body.appendChild(input)
+    input.click()
+    return
+  }
   const chooseMessageFile = (uni as any).chooseMessageFile
   if (!chooseMessageFile) return uni.showToast({ title: '当前环境暂不支持选取文件' })
   chooseMessageFile({ count: 1, type: 'file', success: (result: { tempFiles?: Array<{ name?: string; path?: string; size?: number }> }) => {
@@ -55,7 +67,6 @@ const visibleReports = computed(() => activePanel.value === 'history' ? reports.
       <AppCard class="upload-card">
         <text class="section-title">请选择报告类型</text><text class="muted">上传后系统会提取报告中的健康指标，并等待你确认。</text>
         <view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view>
-        <input id="report-file" ref="fileInput" class="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" @change="onFileChange">
         <view class="upload-box"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><view class="btn file-label" @click="chooseFile">选择文件</view></view>
         <view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view>
         <button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button>

@@ -37,4 +37,5 @@ async function submit() { if (busy.value || !consultant.value || consultant.valu
 .consultant-head { position: relative; padding-right: 100rpx; }
 .consultant-level { white-space: nowrap; font-size: 20rpx; }
 .status { position: absolute; top: 0; right: 0; }
+.top-title { white-space: nowrap; font-size: 27rpx; }
 </style>

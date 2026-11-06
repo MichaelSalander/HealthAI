@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import { healthRepository } from '../../services/api/repositories'
-import type { HealthDataSources, Observation } from '../../types/domain'
+import { consultationRepository } from '../../services/api/consultation'
+import type { DemoSession } from '../../types/consultation'
+import type { HealthDataSources, Observation, Order } from '../../types/domain'
 
 const go = (url: string) => uni.navigateTo({ url })
 const dataSources = ref<HealthDataSources | null>(null)
@@ -11,14 +13,20 @@ const observations = ref<Observation[]>([])
 const observationCount = ref(0)
 const dataLoading = ref(true)
 const dataError = ref('')
+const session = ref<DemoSession | null>(null)
+const orders = ref<Order[]>([])
 const formatDate = (value?: string | null) => value ? value.slice(0, 10) : '暂无记录'
+const activeOrder = computed(() => orders.value.find(item => item.status === '服务中' || item.paymentStatus === 'success'))
+const switchAccount = () => { consultationRepository.logoutCustomer(); uni.reLaunch({ url: '/pages/login/index' }) }
 
 onMounted(async () => {
   try {
-    const [sources, items] = await Promise.all([healthRepository.listDataSources(), healthRepository.getObservations()])
+    session.value = await consultationRepository.customer()
+    const [sources, items, customerOrders] = await Promise.all([healthRepository.listDataSources(), healthRepository.getObservations(), consultationRepository.orders(session.value)])
     dataSources.value = sources
     observationCount.value = items.length
     observations.value = items.slice(0, 3)
+    orders.value = customerOrders
   } catch (error) {
     dataError.value = error instanceof Error ? error.message : '健康资料暂时无法读取'
   } finally {
@@ -42,8 +50,8 @@ if ((import.meta as any).env?.DEV) items.unshift({ label: '本地流程验收（
 
 <template>
   <view class="page">
-    <AppCard class="profile-head"><view class="avatar">张</view><view class="grow"><text class="name">张小美</text><text class="muted">ID：138****8888</text></view><text>›</text></AppCard>
-    <view class="benefit"><text class="benefit-title">◆ 我的健康权益</text><text>初级健康管理（月付）</text><text class="benefit-date">2024.12.01 - 2025.01.01</text><button class="benefit-btn" @click="go('/pages/service/index')">查看权益</button></view>
+    <AppCard class="profile-head"><view class="avatar">{{ session?.name?.slice(0, 1) || '我' }}</view><view class="grow"><text class="name">{{ session?.name || '会员' }}</text><text class="muted">账号：{{ session?.id || '未登录' }}</text></view><text class="switch" @click="switchAccount">切换账号</text></AppCard>
+    <view class="benefit"><text class="benefit-title">◆ 我的健康权益</text><template v-if="activeOrder"><text>{{ activeOrder.planName }}</text><text class="benefit-date">已开通 · {{ formatDate(activeOrder.paidAt || activeOrder.createdAt) }}</text><button class="benefit-btn" @click="go('/pages/service/index')">查看权益</button></template><template v-else><text>暂未开通服务方案</text><text class="benefit-date">选择适合你的健康管理服务</text><button class="benefit-btn" @click="go('/pages/plans/formal')">去选择</button></template></view>
     <AppCard class="data-card" @click="go('/pages/health/index')">
       <view class="data-card-head"><text class="data-title">我的健康数据</text><text class="data-link">查看全部 ›</text></view>
       <text v-if="dataLoading" class="muted">正在同步健康资料…</text>
@@ -61,7 +69,7 @@ if ((import.meta as any).env?.DEV) items.unshift({ label: '本地流程验收（
 
 <style scoped>
 .benefit{display:block;width:100%;box-sizing:border-box;position:relative;margin-top:24rpx;padding:30rpx;border-radius:24rpx;color:#fff;background:linear-gradient(135deg,#243149,#344866)}
-.profile-head{display:flex;align-items:center;padding:28rpx}.avatar{width:96rpx;height:96rpx;line-height:96rpx;margin-right:20rpx;border-radius:50%;text-align:center;color:#fff;background:#e6b6a8;font-size:38rpx;font-weight:700}.name{display:block;font-size:36rpx;font-weight:700}.muted{display:block;margin-top:8rpx;color:#81918f;font-size:23rpx}.benefit-title{display:block;margin-bottom:22rpx;color:#ffe29b;font-size:29rpx;font-weight:700}.benefit-date{display:block;margin-top:6rpx;color:#d9e1ea;font-size:22rpx}.benefit-btn{position:absolute;right:24rpx;bottom:28rpx;height:54rpx;line-height:54rpx;padding:0 20rpx;border:0;border-radius:14rpx;color:#364052;background:#ffe29b;font-size:22rpx}
+.profile-head{display:flex;align-items:center;padding:28rpx}.avatar{width:96rpx;height:96rpx;line-height:96rpx;margin-right:20rpx;border-radius:50%;text-align:center;color:#fff;background:#e6b6a8;font-size:38rpx;font-weight:700}.name{display:block;font-size:36rpx;font-weight:700}.muted{display:block;margin-top:8rpx;color:#81918f;font-size:23rpx}.switch{color:#08a990;font-size:22rpx}.benefit-title{display:block;margin-bottom:22rpx;color:#ffe29b;font-size:29rpx;font-weight:700}.benefit-date{display:block;margin-top:6rpx;color:#d9e1ea;font-size:22rpx}.benefit-btn{position:absolute;right:24rpx;bottom:28rpx;height:54rpx;line-height:54rpx;padding:0 20rpx;border:0;border-radius:14rpx;color:#364052;background:#ffe29b;font-size:22rpx}
 .data-card{margin-top:16rpx;padding:24rpx;background:#f4fffc}.data-card-head{display:flex;align-items:center;justify-content:space-between}.data-title{font-size:29rpx;font-weight:700;color:#173b38}.data-link{color:#08a990;font-size:22rpx}.data-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:22rpx}.data-stats view{text-align:center}.stat-value{display:block;color:#0a8f80;font-size:30rpx;font-weight:800}.stat-label{display:block;margin-top:6rpx;color:#81918f;font-size:20rpx}.recent-list{margin-top:18rpx;padding-top:16rpx;border-top:1rpx solid #d9f0eb}.recent-item{display:flex;justify-content:space-between;gap:12rpx;padding:10rpx 0}.recent-name{max-width:52%;font-size:22rpx;color:#304743}.normal,.danger{font-size:21rpx}.normal{color:#08a990}.danger,.data-error{color:#e45446}.profile-item{display:flex;align-items:center;margin-top:14rpx;padding:22rpx}.profile-icon{width:56rpx;color:#53687a;font-size:30rpx}
 .recent-main{display:flex;align-items:center;gap:8rpx;max-width:52%}.recent-category{padding:3rpx 8rpx;border-radius:8rpx;color:#08a990;background:#e4faf4;font-size:17rpx}
 </style>

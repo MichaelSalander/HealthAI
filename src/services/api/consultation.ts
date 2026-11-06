@@ -75,6 +75,7 @@ export const consultationRepository = {
   wechatLogin(code: string, role: DemoRole = 'customer') { return request<DemoSession>('/auth/wechat-login', 'POST', { code, role }) },
   async customer(): Promise<DemoSession> { return customerSession ||= readCustomerSession() || await this.login('customer') },
   async useCustomer(id: string) { return persistCustomerSession(await this.login('customer', id)) },
+  logoutCustomer() { clearCustomerSession() },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   healthCenters() { return request<HealthCheckCenter[]>('/health-centers') },
   async eligibility() { return request<{ hasBloodTest: boolean; healthCenterRoute: string }>('/consultations/eligibility', 'GET', undefined, await this.customer()) },

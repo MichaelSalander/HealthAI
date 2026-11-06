@@ -18,9 +18,9 @@ const accessDenied = computed(() => /无权|权限|不存在|失效/.test(error.
 const invalidTitle = computed(() => isConsultant.value ? '这是一间客户专属咨询室' : '这是一间你的专属咨询室')
 const invalidCopy = computed(() => isConsultant.value ? '当前账号不是本次配对的健管师，请从工作台的待办咨询进入。' : '当前账号不是本次咨询的参与者，请从“我的咨询”进入自己的聊天室。')
 const invalidAction = computed(() => isConsultant.value ? '返回健管师工作台' : '返回我的咨询')
-const statusText = computed(() => room.value?.status === 'completed' ? '已结束' : voice.value?.status === 'connected' ? '语音通话中' : otherPerson.value?.online ? '在线' : '暂时离线')
-const roomBannerTitle = computed(() => isConsultant.value ? '客户咨询' : '健康咨询')
-const roomBannerSubtitle = computed(() => isConsultant.value ? '查看客户资料并跟进本次咨询' : '与健管师沟通你的健康问题')
+const statusText = computed(() => room.value?.status === 'completed' ? '已结束' : otherPerson.value?.online ? '在线' : '暂时离线')
+const roomBannerTitle = computed(() => isConsultant.value ? '客户咨询' : '我的健康管理师')
+const roomBannerSubtitle = computed(() => isConsultant.value ? '查看客户资料并跟进服务' : '健康管理服务')
 const healthDrawerTitle = computed(() => isConsultant.value ? '客户健康摘要' : '我的健康摘要')
 
 async function load() { try { const [roomData, result, voiceData] = await Promise.all([api.room(props.roomId, props.session), api.messages(props.roomId, props.session), api.voiceSessions(props.roomId, props.session)]); room.value = roomData; messages.value = result.items; voice.value = voiceData || undefined; if (isConsultant.value) { const health = await api.clientHealth(roomData.userId, props.session); healthObservations.value = health.observations } if (messages.value.length) await api.readRoom(props.roomId, messages.value[messages.value.length - 1].id, props.session); error.value = '' } catch (e) { error.value = /无权|权限|不存在/.test((e as Error).message) ? '该咨询房间已结束、失效，或当前账号没有查看权限。请从咨询列表进入有效的咨询。' : (e as Error).message } finally { loading.value = false } }
@@ -49,7 +49,7 @@ onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined);
 
 <template>
   <view class="room-shell">
-    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || '一对一健康咨询' }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more" @click="showRoomMenu">⋯</view></view>
+    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || (isConsultant ? '客户' : '我的健康管理师') }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more" @click="showRoomMenu">⋯</view></view>
     <view class="room-banner"><view class="room-avatar">{{ otherPerson?.name?.slice(0, 1) || '健' }}</view><view class="room-banner-copy"><text class="room-banner-title">{{ roomBannerTitle }}</text><text class="room-banner-subtitle">{{ roomBannerSubtitle }}</text></view></view>
     <view v-if="error && accessDenied" class="room-invalid"><view class="invalid-icon">锁</view><text class="invalid-title">{{ invalidTitle }}</text><text class="invalid-copy">{{ invalidCopy }}</text><text class="invalid-detail">{{ error }}</text><button class="invalid-action" @click="emit('back')">{{ invalidAction }}</button></view>
     <view v-else-if="error" class="room-error">{{ error }}</view>

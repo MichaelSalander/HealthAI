@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
@@ -15,13 +16,14 @@ const healthScore = computed(() => {
   const abnormal = observations.value.filter(item => item.status !== '正常').length
   return String(Math.max(0, Math.round(100 - abnormal / observations.value.length * 35)))
 })
-onMounted(async () => { const [items, settings] = await Promise.all([healthRepository.getObservations(), contentRepository.listContentSettings()]); observations.value = items; content.value = settings; report.value = items.length ? await aiRepository.generateReport(items) : null })
+const load = async () => { const [items, settings] = await Promise.all([healthRepository.getObservations(), contentRepository.listContentSettings()]); observations.value = items; content.value = settings; report.value = items.length ? await aiRepository.generateReport(items) : null }
+onShow(load)
 const go = () => uni.navigateTo({ url: '/pages/health/index' })
 </script>
 <template>
   <view class="page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">健康结果</text><text>♧</text></view>
     <AppCard class="summary"><view class="score"><text class="score-num">{{ healthScore }}</text><text class="small">健康评分</text></view><view class="summary-copy"><text class="summary-title">{{ report?.summary || (observations.length ? 'AI健康结果生成中' : '暂无健康结果') }}</text><text class="muted">{{ report ? `AI分析 · ${report.riskLevel || '待评估'}` : '确认健康指标后生成' }}</text></view></AppCard>
-    <view class="section-title">需要关注的指标</view><AppCard><view v-for="item in observations.filter(x => x.status !== '正常')" :key="item.id" class="metric-item"><view class="metric-icon">↑</view><view class="grow"><text class="metric-name">{{ item.name }}　<span>{{ item.status }}</span></text><text class="metric-value">{{ item.value }} {{ item.unit }} <text class="muted">（参考值 {{ item.reference }}）</text></text><text class="explanation">{{ explanationFor(item) }}</text></view><text class="danger">↑</text></view><text v-if="!observations.some(item => item.status !== '正常')" class="muted">{{ observations.length ? '暂无异常指标。' : '暂无健康指标，请先上传报告或手动记录。' }}</text></AppCard>
+<view class="section-title">需要关注的指标</view><AppCard><view v-for="item in observations.filter(x => x.status !== '正常')" :key="item.id" class="metric-item"><view class="metric-icon">↑</view><view class="grow"><text class="metric-name">{{ item.name }}　<span>{{ item.status }}</span></text><text class="metric-value">{{ item.value }} {{ item.unit }} <text class="muted">（参考值 {{ item.reference }}）</text></text><text class="explanation">{{ explanationFor(item) }}</text></view></view><text v-if="!observations.some(item => item.status !== '正常')" class="muted">{{ observations.length ? '暂无异常指标。' : '暂无健康指标，请先上传报告或手动记录。' }}</text></AppCard>
     <AppCard class="guide-card"><view class="guide-icon">✥</view><view class="guide-copy"><text class="guide-title">{{ content.resultConsultationTitle }}</text><text class="muted">{{ content.resultConsultationDescription }}</text></view><PrimaryButton label="咨询我的健康管理师" @tap="go" /></AppCard><text class="disclaimer">{{ content.resultDisclaimer }}</text><BottomNav active="health" />
   </view>
 </template>

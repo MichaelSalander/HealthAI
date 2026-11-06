@@ -4,6 +4,17 @@
 @use "sidebar";
 @use "dark";
 
+/* HealthAI 品牌覆盖：保留 Element Plus 的可访问性与组件能力，统一后台为橘白健康消费级风格。 */
+:root {
+  --el-color-primary: #e8792f;
+  --el-color-primary-light-3: #ee9c65;
+  --el-color-primary-light-5: #f3b98f;
+  --el-color-primary-light-7: #f8d6bb;
+  --el-color-primary-light-8: #fbe5d5;
+  --el-color-primary-light-9: #fdf2ea;
+  --el-color-primary-dark-2: #c85e1c;
+}
+
 /* 自定义全局 CssVar */
 :root {
   /* 左侧菜单展开、收起动画时长 */

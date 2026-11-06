@@ -151,9 +151,10 @@
 - [x] T488 线上浏览器端到端验收：新会员同意健康资料后选择 PDF、上传、解析候选指标、确认入档并查看健康结果
 - [x] T489 长报告解析超时修正：报告上传／DeepSeek OCR 请求独立使用 180 秒超时，支持 26 页血检报告完成解析
 - [x] T490 图片报告 OCR：PNG／JPG／WEBP 上传按图片类型调用 DeepSeek Vision，保留用户确认后入档流程；线上已用报告首页 PNG 验证上传、解析与待确认状态
+- [x] T491 管理后台品牌与业务路由收口：移除 PureAdmin 示例导航入口，统一 HealthAI 名称、橘白主题、会员／健管师／咨询监控／订单／内容／系统配置菜单，并通过后台类型检查与生产建置
 
 ## 验收命令
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。线上浏览器已验证未登录客户会导向登录页，并用新 Email 会员完成 PDF 选择、上传、解析候选指标、确认入档及健康结果查看；另外使用 26 页、4.5MB 的真实血检报告完成 DeepSeek 解析与确认入档，并用该报告首页 PNG 完成图片上传、DeepSeek 图片解析及待确认状态验证。Admin `pnpm --dir console run typecheck` 在本机持续无输出，需单独排查或在 CI 环境完成确认；不能把它标记为已通过。Cloudways commit `dea8ddb` 已部署成功。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单及正式运营账号；目前环境页仍显示 `NODE_ENV=development`。
+主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。线上浏览器已验证未登录客户会导向登录页，并用新 Email 会员完成 PDF 选择、上传、解析候选指标、确认入档及健康结果查看；另外使用 26 页、4.5MB 的真实血检报告完成 DeepSeek 解析与确认入档，并用该报告首页 PNG 完成图片上传、DeepSeek 图片解析及待确认状态验证。管理后台已完成 `pnpm --dir console run typecheck` 与 `pnpm --dir console run build`。Cloudways commit `dea8ddb` 已部署成功；本轮后台品牌与路由修正尚待部署。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单及正式运营账号；目前环境页仍显示 `NODE_ENV=development`。

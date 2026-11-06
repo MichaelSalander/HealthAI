@@ -1,6 +1,6 @@
 {
   "Version": "7.0.0",
-  "Title": "PureAdmin",
+  "Title": "HealthAI 智能健康管理平台",
   "FixedHeader": true,
   "HiddenSideBar": false,
   "MultiTagsCache": false,
@@ -16,7 +16,7 @@
   "HideFooter": false,
   "Stretch": false,
   "SidebarStatus": true,
-  "EpThemeColor": "#409EFF",
+  "EpThemeColor": "#e8792f",
   "ShowLogo": true,
   "Watermark": false,
   "TagsStyle": "chrome",

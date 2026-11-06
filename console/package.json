@@ -1,5 +1,5 @@
 {
-  "name": "vue-pure-admin",
+  "name": "healthai-console",
   "version": "7.0.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "keywords": [
-    "vue-pure-admin",
+    "healthai",
     "element-plus",
     "tailwindcss",
     "pure-admin",

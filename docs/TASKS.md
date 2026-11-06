@@ -134,6 +134,7 @@
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 - [x] T501a OpenAI Responses OCR Provider：PDF 上传、结构化候选指标、用户确认前置、临时文件清理；生产环境通过 `OCR_PROVIDER=openai` 启用
 - [x] T501c DeepSeek PDF OCR Provider：提取文字型 PDF 的文字层并调用 DeepSeek 结构化候选指标；生产环境通过 `OCR_PROVIDER=deepseek` 启用
+- [x] T501d 扫描 PDF OCR：无文字层 PDF 通过可配置页面渲染器转 PNG，再调用 DeepSeek Vision 并保留页码与用户确认流程
 - [ ] T501b OpenAI AI 分析正式验收：配置 API Key、模型与预算上限后，用真实报告完成 OCR 与 AI 结果验收
 
 ## 验收命令

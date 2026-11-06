@@ -1,4 +1,7 @@
 import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { spawn } from 'node:child_process'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 function parseJson(content) {
@@ -112,6 +115,46 @@ async function extractPdfText(storagePath) {
   return pages
 }
 
+function runProcess(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let stderr = ''
+    child.stderr.on('data', chunk => { stderr += String(chunk) })
+    child.on('error', reject)
+    child.on('close', code => code === 0 ? resolve() : reject(new Error(stderr.trim() || `${command} 执行失败（${code}）`)))
+  })
+}
+
+async function renderPdfPages(storagePath) {
+  const renderer = process.env.OCR_PDF_RENDERER || 'pdftoppm'
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'healthai-ocr-'))
+  const prefix = path.join(tempDir, 'page')
+  try {
+    const maxPages = Math.min(Math.max(Number(process.env.OCR_MAX_PAGES || 20), 1), 50)
+    const dpi = Math.min(Math.max(Number(process.env.OCR_IMAGE_DPI || 144), 96), 220)
+    await runProcess(renderer, ['-png', '-r', String(dpi), '-f', '1', '-l', String(maxPages), storagePath, prefix])
+    const files = (await fs.readdir(tempDir)).filter(file => file.endsWith('.png')).sort()
+    if (!files.length) throw new Error('PDF 页面转图片后没有生成图片')
+    return await Promise.all(files.map(async file => ({ file, base64: (await fs.readFile(path.join(tempDir, file))).toString('base64') })))
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(`扫描 PDF 需要 ${renderer} 将页面转换为图片；服务器尚未安装该工具`)
+    throw error
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
+  }
+}
+
+async function extractDeepSeekVision({ reportId, measuredAt, storagePath, baseUrl, apiKey, model, timeoutMs }) {
+  const pages = await renderPdfPages(storagePath)
+  const content = [{ type: 'text', text: '请从这些中国大陆体检报告页面中提取明确出现的健康检测指标或检查结果。不要猜测、不要补齐缺失值、不要做医疗诊断。必须保留原始页码；无法确认的 status 使用“需确认”。只返回 JSON。' }]
+  for (let index = 0; index < pages.length; index += 1) content.push({ type: 'image_url', image_url: { url: `data:image/png;base64,${pages[index].base64}`, detail: process.env.OCR_IMAGE_DETAIL || 'high' } }, { type: 'text', text: `以上图片对应原报告第 ${index + 1} 页。` })
+  const response = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', signal: AbortSignal.timeout(timeoutMs), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: '你是体检报告结构化提取器。只返回 JSON，不做诊断。JSON 必须包含 candidates 数组，每个候选必须包含 code、name、value、unit、reference、status、confidence、measuredAt、category、valueType、severity、interpretation、recommendation、sourcePage。' }, { role: 'user', content }] }) })
+  if (!response.ok) throw new Error(`DeepSeek 图片 OCR 请求失败：${response.status}`)
+  const payload = await response.json()
+  const parsed = parseJson(payload.choices?.[0]?.message?.content)
+  return { reportId, provider: 'deepseek-vision-pdf-ocr', model, status: 'needs_confirmation', candidates: Array.isArray(parsed.candidates) ? parsed.candidates.map((item, index) => normalizeCandidate(item, reportId, measuredAt, index)) : [] }
+}
+
 function createDeepSeekProvider() {
   const apiKey = process.env.OCR_API_KEY || process.env.LLM_API_KEY
   if (!apiKey) throw new Error('已启用 DeepSeek OCR，但未设置 OCR_API_KEY 或 LLM_API_KEY')
@@ -123,10 +166,14 @@ function createDeepSeekProvider() {
       if (!storagePath) throw new Error('报告原文件不存在，无法执行 DeepSeek OCR')
       const pages = await extractPdfText(storagePath)
       const sourceText = pages.map(page => `第${page.pageNumber}页：${page.text}`).join('\n')
-      if (!sourceText) throw new Error('该 PDF 没有可读取的文字层；请改用图片型 OCR Provider')
+      const timeoutMs = Math.min(Math.max(Number(process.env.OCR_TIMEOUT_MS || 120000), 10000), 300000)
+      if (!sourceText) {
+        if (process.env.OCR_ENABLE_VISION !== 'true') throw new Error('该 PDF 没有可读取的文字层；请启用 OCR_ENABLE_VISION=true 后使用图片 OCR')
+        return extractDeepSeekVision({ reportId, measuredAt, storagePath, baseUrl, apiKey, model: process.env.OCR_MODEL || 'deepseek-flash', timeoutMs })
+      }
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
-        signal: AbortSignal.timeout(Math.min(Math.max(Number(process.env.OCR_TIMEOUT_MS || 120000), 10000), 300000)),
+        signal: AbortSignal.timeout(timeoutMs),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model,

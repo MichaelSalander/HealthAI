@@ -363,6 +363,33 @@ const server = http.createServer(async (req, res) => {
     const consultants = workflow.consultants.map(item => ({ id: item.id, name: item.name, role: 'consultant', consultant: '', status: item.status === 'offline' ? '离线' : '已认证', reportCount: 0, observationCount: 0, createdAt: null }))
     return send(res, 200, { code: 0, data: [...customers, ...consultants] })
   }
+  if (route === '/api/admin/overview' && req.method === 'GET') {
+    requireActor(req, ['admin'])
+    const workflow = state.workflow || { consultants: [], bookings: [], consultationRequests: [], notifications: [] }
+    const customerIds = new Set([...Object.keys(state.profiles || {}), ...Object.keys(state.reports || {}), ...Object.keys(state.observations || {}), ...Object.keys(state.orders || {}), ...(workflow.bookings || []).map(item => item.userId), ...(workflow.consultationRequests || []).map(item => item.userId)])
+    const customerName = id => [...(workflow.consultationRequests || []), ...(workflow.bookings || [])].reverse().find(item => item.userId === id)?.userName || state.profiles?.[id]?.name || id
+    const activeCustomerIds = new Set((workflow.consultationRequests || []).filter(item => ['assigned', 'waiting_consultant', 'in_progress'].includes(item.status)).map(item => item.userId))
+    for (const [userId, orders] of Object.entries(state.orders || {})) if ((orders || []).some(order => order.status === '服务中')) activeCustomerIds.add(userId)
+    const pendingReports = Object.values(state.reports || {}).flat().filter(report => ['待确认', '解析失败'].includes(report.status)).length
+    const today = new Date().toISOString().slice(0, 10)
+    const consultationsToday = [...(workflow.bookings || []), ...(workflow.consultationRequests || [])].filter(item => String(item.createdAt || '').slice(0, 10) === today).length
+    const paidOrders = Object.values(state.orders || {}).flat().filter(order => order.paymentStatus === 'success')
+    const month = today.slice(0, 7)
+    const monthRevenueFen = paidOrders.filter(order => String(order.paidAt || order.createdAt || '').slice(0, 7) === month).reduce((sum, order) => sum + Number(order.priceFen || 0), 0)
+    const recentCustomers = [...customerIds].map(id => {
+      const reports = state.reports?.[id] || []; const observations = state.observations?.[id] || []
+      const latest = [...observations].sort((a, b) => String(b.measuredAt || '').localeCompare(String(a.measuredAt || '')))[0]
+      return { id, name: customerName(id), tag: latest?.status && latest.status !== '正常' ? latest.name : reports.length ? '体检报告已上传' : '待建立健康资料', score: null, status: activeCustomerIds.has(id) ? '服务中' : '待跟进', reportCount: reports.length, observationCount: observations.length }
+    }).sort((a, b) => (b.reportCount + b.observationCount) - (a.reportCount + a.observationCount)).slice(0, 10)
+    const notices = [...(workflow.notifications || [])].filter(item => item.role === 'admin' || item.recipientId === 'admin-001').slice(0, 10).map(item => ({ id: item.id, title: item.title, time: item.createdAt, type: item.read ? 'info' : 'warning' }))
+    return send(res, 200, { code: 0, data: { metrics: { activeCustomers: activeCustomerIds.size, pendingReports, consultationsToday, monthRevenueFen }, recentCustomers, notices } })
+  }
+  if (route === '/api/admin/orders' && req.method === 'GET') {
+    requireActor(req, ['admin'])
+    const plans = new Map((state.plans || []).map(item => [item.id, item]))
+    const orders = Object.entries(state.orders || {}).flatMap(([userId, items]) => (items || []).map(order => ({ ...order, userId, userName: state.profiles?.[userId]?.name || userId, productName: plans.get(order.planId)?.name || order.planName || '服务订单' })))
+    return send(res, 200, { code: 0, data: orders.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) })
+  }
   if (route === '/api/consultant-categories' && req.method === 'GET') {
     state.consultantCategories ||= structuredClone(initialState.consultantCategories)
     const counts = new Map((state.workflow?.consultants || []).flatMap(item => (item.categories || []).map(category => [category, 1])).reduce((all, [category]) => all.set(category, (all.get(category) || 0) + 1), new Map()))

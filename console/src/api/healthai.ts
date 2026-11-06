@@ -8,6 +8,8 @@ export type ConsultantCategory = { id: string; name: string; count: number; enab
 export type AdminUser = { id: string; name: string; role: "customer" | "consultant"; consultant: string; status: string; reportCount: number; observationCount: number; createdAt: string | null };
 export type EducationArticle = { id: string; title: string; category: string; summary: string; body: string; status: "draft" | "published"; publishedAt?: string; updatedAt: string; sort: number };
 export type HealthCheckCenter = { id: string; name: string; address: string; distanceKm?: number; phone?: string; items: string[]; enabled: boolean; sort: number };
+export type AdminOverview = { metrics: { activeCustomers: number; pendingReports: number; consultationsToday: number; monthRevenueFen: number }; recentCustomers: Array<{ id: string; name: string; tag: string; score: number | null; status: string; reportCount: number; observationCount: number }>; notices: Array<{ id: string; title: string; time: string; type: string }> };
+export type AdminOrder = { id: string; userId: string; userName: string; productName: string; priceFen: number; status: string; paymentStatus?: string; createdAt: string; paidAt?: string };
 const base = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8787/api/v1").replace(/\/$/, "");
 async function request<T>(path: string, fallback: T, init?: RequestInit): Promise<T> {
   try { const token = getToken(); const response = await fetch(`${base}${path}`, { ...init, headers: { "Content-Type": "application/json", ...(token?.accessToken ? { Authorization: `Bearer ${token.accessToken}` } : {}), ...(init?.headers ?? {}) } }); const body = await response.json() as { data?: T; message?: string }; if (!response.ok) { if (init?.method === "PUT") throw new Error(body.message || "保存失败"); return fallback; } return body.data ?? fallback; } catch (error) { if (init?.method === "PUT") throw error; return fallback; }
@@ -22,6 +24,8 @@ export const healthAiApi = {
   listConsultantCategories: (fallback: ConsultantCategory[]) => request("/consultant-categories", fallback),
   saveConsultantCategories: (data: ConsultantCategory[]) => request("/consultant-categories", data, { method: "PUT", body: JSON.stringify(data) }),
   listUsers: (fallback: AdminUser[]) => request("/admin/users", fallback),
+  getOverview: (fallback: AdminOverview) => request("/admin/overview", fallback),
+  listOrders: (fallback: AdminOrder[]) => request("/admin/orders", fallback),
   listEducationArticles: (fallback: EducationArticle[]) => request("/education/articles", fallback),
   saveEducationArticles: (data: EducationArticle[]) => request("/education/articles", data, { method: "PUT", body: JSON.stringify(data) }),
   listHealthCenters: (fallback: HealthCheckCenter[]) => request("/health-centers", fallback),

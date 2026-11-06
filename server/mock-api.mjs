@@ -612,7 +612,12 @@ const server = http.createServer(async (req, res) => {
       state.reportExtractions ||= {}
       try {
         const extraction = await ocrProvider.extract({ reportId, measuredAt, storagePath: storagePath ? path.join(uploadRoot, storagePath) : undefined, mimeType: report.mimeType, fileName: report.name })
-        state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
+        if (!Array.isArray(extraction.candidates) || extraction.candidates.length === 0) {
+          report.status = '解析失败'
+          state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, status: 'failed', candidates: [], errorMessage: '报告中没有识别到可确认的健康指标，请上传包含检测数据的报告页面。', createdAt: new Date().toISOString() }
+        } else {
+          state.reportExtractions[reportId] = { id: `extract-${reportId}`, ...extraction, createdAt: new Date().toISOString() }
+        }
       } catch (error) {
         report.status = '解析失败'
         state.reportExtractions[reportId] = { id: `extract-${reportId}`, reportId, provider: ocrProvider.name, status: 'failed', candidates: [], errorMessage: error instanceof Error ? error.message : '报告解析失败，请稍后重试', createdAt: new Date().toISOString() }

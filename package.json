@@ -12,7 +12,7 @@
     "dev:api": "node tools/run-api.mjs",
     "reset:local-data": "node tools/reset-local-data.mjs",
     "start:api": "node tools/run-api.mjs",
-    "build:h5": "node node_modules/@dcloudio/vite-plugin-uni/bin/uni.js build -p h5",
+    "build:h5": "node node_modules/@dcloudio/vite-plugin-uni/bin/uni.js build -p h5 && node tools/sync-h5-output.mjs",
     "build:mp-weixin": "node node_modules/@dcloudio/vite-plugin-uni/bin/uni.js build -p mp-weixin",
     "build:mp-weixin:test": "node tools/build-mp-weixin-test.mjs",
     "build:mp-weixin:production": "node tools/build-mp-weixin-production.mjs",

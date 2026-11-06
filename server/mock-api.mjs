@@ -114,18 +114,51 @@ const storageStore = databaseMode === 'json'
     ? await openPostgresStore({ connectionString: databaseUrl, seedFile: dataFile, ssl: process.env.HEALTHAI_DB_SSL === 'true' })
     : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
-// 移除旧版本随包附带的演示客户数据；不会清理用户自行上传或注册产生的其他数据。
+// 移除旧版本随包附带的演示客户数据；不会清理其他真实注册客户。
+// 旧种子不仅包含 profile/report，还包含工作台会读到的 booking、通知、房间和消息，
+// 因此必须一次性清理所有引用，避免正式环境继续显示“张小美/测试客户”。
+const legacyDemoCustomerIds = new Set(['u-001', 'u-no-blood'])
+const legacyDemoNames = new Set(['张小美', '无血检测试用户', '测试客户', '测试用户'])
+const isLegacyDemoRecord = item => item && (
+  legacyDemoCustomerIds.has(item.userId) ||
+  legacyDemoCustomerIds.has(item.recipientId) ||
+  legacyDemoCustomerIds.has(item.senderId) ||
+  legacyDemoCustomerIds.has(item.actorId) ||
+  legacyDemoCustomerIds.has(item.initiatorId) ||
+  legacyDemoNames.has(item.userName) ||
+  legacyDemoNames.has(item.name) ||
+  legacyDemoNames.has(item.title) ||
+  legacyDemoNames.has(item.body)
+)
 let removedLegacySeed = false
 for (const key of ['profiles', 'reports', 'observations', 'aiReports', 'orders']) {
-  if (state[key]?.['u-001']) { delete state[key]['u-001']; removedLegacySeed = true }
+  for (const id of legacyDemoCustomerIds) {
+    if (state[key]?.[id]) { delete state[key][id]; removedLegacySeed = true }
+  }
 }
-if (state.customerAccounts?.some(item => item.id === 'u-001')) {
-  state.customerAccounts = state.customerAccounts.filter(item => item.id !== 'u-001')
+for (const key of ['bookings', 'notifications']) {
+  if (Array.isArray(state[key])) {
+    const before = state[key].length
+    state[key] = state[key].filter(item => !isLegacyDemoRecord(item))
+    removedLegacySeed ||= before !== state[key].length
+  }
+}
+if (state.customerAccounts?.some(item => legacyDemoCustomerIds.has(item.id))) {
+  state.customerAccounts = state.customerAccounts.filter(item => !legacyDemoCustomerIds.has(item.id))
   removedLegacySeed = true
 }
 if (state.wechatIdentities) {
   for (const [key, item] of Object.entries(state.wechatIdentities)) {
-    if (item?.id === 'u-001') { delete state.wechatIdentities[key]; removedLegacySeed = true }
+    if (legacyDemoCustomerIds.has(item?.id)) { delete state.wechatIdentities[key]; removedLegacySeed = true }
+  }
+}
+if (state.workflow) {
+  const legacyConversationIds = new Set((state.workflow.conversations || []).filter(isLegacyDemoRecord).map(item => item.id))
+  for (const key of ['bookings', 'notifications', 'presence', 'audit', 'consultationRequests', 'conversations', 'messages', 'voiceSessions', 'serviceRecords']) {
+    if (!Array.isArray(state.workflow[key])) continue
+    const before = state.workflow[key].length
+    state.workflow[key] = state.workflow[key].filter(item => !isLegacyDemoRecord(item) && !legacyConversationIds.has(item.conversationId))
+    removedLegacySeed ||= before !== state.workflow[key].length
   }
 }
 if (removedLegacySeed) persist()

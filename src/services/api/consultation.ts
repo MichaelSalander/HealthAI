@@ -51,6 +51,11 @@ function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?:
 export const consultationRepository = {
   login(role: DemoRole, id?: string) {
     if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat' && role === 'customer') return this.loginWithWechat(role)
+    if (role === 'customer') {
+      const saved = customerSession || readCustomerSession()
+      if (saved) { customerSession = saved; return Promise.resolve(saved) }
+      if (!isDemoMode) return Promise.reject(new Error('请先登录或注册会员账号'))
+    }
     if (role === 'consultant') {
       const saved = consultantSession || readConsultantSession()
       if (saved) { consultantSession = saved; return Promise.resolve(saved) }
@@ -77,7 +82,10 @@ export const consultationRepository = {
   },
   wechatLogin(code: string, role: DemoRole = 'customer') { return request<DemoSession>('/auth/wechat-login', 'POST', { code, role }) },
   async customer(): Promise<DemoSession> { return customerSession ||= readCustomerSession() || await this.login('customer') },
-  async useCustomer(id: string) { return persistCustomerSession(await this.login('customer', id)) },
+  async useCustomer(id: string) {
+    if (!isDemoMode) throw new Error('正式环境不支持切换演示客户')
+    return persistCustomerSession(await this.login('customer', id))
+  },
   logoutCustomer() { clearCustomerSession() },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   healthCenters() { return request<HealthCheckCenter[]>('/health-centers') },

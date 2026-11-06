@@ -160,3 +160,4 @@
 
 ## 当前验证结果
 主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。线上浏览器已验证未登录客户会导向登录页，并用新 Email 会员完成 PDF 选择、上传、解析候选指标、确认入档及健康结果查看；另外使用 26 页、4.5MB 的真实血检报告完成 DeepSeek 解析与确认入档，并用该报告首页 PNG 完成图片上传、DeepSeek 图片解析及待确认状态验证。管理后台已完成 `pnpm --dir console run typecheck` 与 `pnpm --dir console run build`；本轮新增管理员 API 已用管理员 Token 实际请求验证：`/admin/overview` 返回真实空数据统计，`/admin/orders` 返回真实空订单列表。Cloudways commit `dea8ddb` 已部署成功；本轮品牌、路由与管理后台真实数据修正尚待部署。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单及正式运营账号；目前环境页仍显示 `NODE_ENV=development`。
+- [x] T494 移除正式環境舊演示資料：啟動時清理舊客戶、預約、通知、房間與訊息，並驗證健管師工作台回到真實空狀態

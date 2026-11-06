@@ -51,11 +51,12 @@ async function apiRequestRequired<T>(path: string, init?: RequestInit, session?:
 let reports = readStorage('healthai_reports', [...mockReports])
 let observations = readStorage('healthai_observations', [...mockObservations])
 let orders = readStorage<import('../../types/domain').Order[]>('healthai_orders', [])
-let profile = readStorage<HealthProfile>('healthai_profile', { id: 'hp-001', userId: 'u-001', gender: '女', birthYear: '1992', heightCm: '165', medicalHistory: '', allergies: '', medications: '', lifestyle: '久坐，偶尔运动', updatedAt: new Date().toISOString() })
+const blankProfile = (userId: string): HealthProfile => ({ id: `hp-${userId}`, userId, gender: '', birthYear: '', heightCm: '', medicalHistory: '', allergies: '', medications: '', lifestyle: '', updatedAt: '' })
+let profile = blankProfile('u-new')
 const sessionUser = (session: DemoSession): typeof mockUser => ({ id: session.id, name: session.name, avatar: session.role === 'consultant' ? '👩🏻‍⚕️' : '👩🏻', healthScore: mockUser.healthScore })
 export const authProvider: AuthProvider = { async login() { return sessionUser(await consultationRepository.customer()) }, async wechatLogin() { return sessionUser(await consultationRepository.loginWithWechat('customer')) } }
 export const healthRepository: HealthRepository = {
-  async getProfile() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile | null>('/health/profile', undefined, session); if (remote) profile = remote; return remote || profile },
+  async getProfile() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile | null>('/health/profile', undefined, session); profile = remote || blankProfile(session.id); return profile },
   async saveProfile(input) { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile>('/health/profile', { method: 'PUT', body: JSON.stringify(input) }, session); profile = remote; writeStorage('healthai_profile', profile); return profile },
   async getProfileCompleteness() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthProfileCompleteness>('/health/profile/completeness', undefined, session) },
   async listConsents() { return consultationRepository.consents() },

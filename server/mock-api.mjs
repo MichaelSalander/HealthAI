@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
-import { verifyPassword } from './passwords.mjs'
+import { hashPassword, verifyPassword } from './passwords.mjs'
 import { handleWorkflow } from './consultation-workflow.mjs'
 import { openSqliteStore } from './storage/sqlite-store.mjs'
 import { openPostgresStore } from './storage/postgres-store.mjs'
@@ -120,6 +120,9 @@ const storageStore = databaseMode === 'json'
     ? await openPostgresStore({ connectionString: databaseUrl, seedFile: dataFile, ssl: process.env.HEALTHAI_DB_SSL === 'true' })
     : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
+// 客户账号由 API 持久化管理。环境变量账号只作为首次启动时的预置账号，
+// 新注册账号只保存密码哈希，不保存明文密码。
+state.customerAccounts ||= customerAccounts.map(item => ({ ...item }))
 state.contentSettings = { ...structuredClone(initialState.contentSettings), ...(state.contentSettings || {}) }
 state.contentSettings.metricExplanations ||= structuredClone(initialState.contentSettings.metricExplanations)
 state.consultantCategories ||= structuredClone(initialState.consultantCategories)
@@ -258,11 +261,28 @@ const server = http.createServer(async (req, res) => {
     const actor = { id: account.id, role: account.role, name: account.name || account.username }
     return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds } })
   }
+  if (route === '/api/auth/customer-register' && req.method === 'POST') {
+    const body = await readBody(req)
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return send(res, 400, { code: 400, message: '请输入正确的 Email 地址' })
+    if (password.length < 6) return send(res, 400, { code: 400, message: '密码至少需要 6 位' })
+    const accounts = state.customerAccounts ||= []
+    if (accounts.some(item => String(item.username || '').toLowerCase() === email)) return send(res, 409, { code: 409, message: '该 Email 已注册，请直接登录' })
+    const account = { id: `u-${randomUUID().slice(0, 12)}`, role: 'customer', username: email, name: name || email.split('@')[0], passwordHash: hashPassword(password), createdAt: new Date().toISOString() }
+    accounts.push(account)
+    persist()
+    const actor = { id: account.id, role: 'customer', name: account.name }
+    return send(res, 201, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds, provider: 'email' } })
+  }
   if (route === '/api/auth/customer-login' && req.method === 'POST') {
     const body = await readBody(req)
     if (typeof body.username !== 'string' || typeof body.password !== 'string' || !body.username.trim() || !body.password) return send(res, 400, { code: 400, message: '账号或密码不能为空' })
-    const account = customerAccounts.find(item => item.username === body.username.trim() && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
-    if (!account) return send(res, customerAccounts.length ? 401 : 503, { code: customerAccounts.length ? 401 : 503, message: customerAccounts.length ? '账号或密码错误' : '尚未配置客户账号' })
+    const accounts = state.customerAccounts ||= customerAccounts.map(item => ({ ...item }))
+    const username = body.username.trim().toLowerCase()
+    const account = accounts.find(item => String(item.username || '').toLowerCase() === username && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
+    if (!account) return send(res, accounts.length ? 401 : 503, { code: accounts.length ? 401 : 503, message: accounts.length ? '账号或密码错误' : '尚未配置客户账号' })
     const actor = { id: account.id, role: 'customer', name: account.name || account.username }
     return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds, provider: 'password' } })
   }

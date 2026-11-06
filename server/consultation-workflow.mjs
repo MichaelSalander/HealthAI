@@ -89,8 +89,13 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     if (!['immediate_text', 'immediate_voice', 'scheduled'].includes(body.mode)) fail('咨询方式无效', 400)
     const existing = db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
     if (existing) return existing
-    const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: body.consultantPreference, status: 'queued', createdAt: stamp() }
-    db.consultationRequests.unshift(item); audit('consultation.requested', item.id); notifyResource('admin', 'admin-001', '有新的即时咨询请求', 'consultation_request', item.id); return item
+    const assigned = db.consultants.find(person => person.id === 'c-101' && person.status === 'available' && person.freeConsultEnabled)
+    const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: 'c-101', consultantId: assigned?.id, consultantName: assigned?.name, status: assigned ? 'assigned' : 'queued', createdAt: stamp(), assignedAt: assigned ? stamp() : undefined }
+    db.consultationRequests.unshift(item); audit('consultation.requested', item.id)
+    if (assigned) notifyResource('consultant', assigned.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id)
+    notifyResource('admin', 'admin-001', assigned ? '新的咨询已自动配对 C-101' : '有新的即时咨询请求', 'consultation_request', item.id)
+    if (assigned) notifyResource('customer', item.userId, `已为您配对 ${assigned.name}，等待健管师确认`, 'consultation_request', item.id)
+    return item
   }
   if (route === '/api/consultation-requests' && method === 'GET') {
     requireRole('customer', 'consultant', 'admin'); return db.consultationRequests.filter(requestVisible)

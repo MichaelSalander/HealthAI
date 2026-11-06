@@ -8,14 +8,24 @@ import { healthRepository } from '../../services/api/repositories'
 import { useHealthStore } from '../../stores/health'
 import { uniApi as uni } from '../../services/platform/uni'
 import type { HealthReport, ReportExtraction } from '../../types/domain'
+
 const reportKind = ref<'blood_test' | 'general'>('blood_test')
 const activePanel = ref<'upload' | 'history'>('upload')
-const reports = ref<HealthReport[]>([]); const loading = ref(false); const store = useHealthStore()
+const reports = ref<HealthReport[]>([])
+const loading = ref(false)
+const store = useHealthStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<{ name: string; mimeType: string; sizeBytes: number; fileBase64: string } | null>(null)
 const extraction = ref<ReportExtraction | null>(null)
 const consentGranted = ref(false)
-const load = async () => { const [reportList, consents] = await Promise.all([healthRepository.listReports(), healthRepository.listConsents()]); reports.value = reportList; consentGranted.value = consents.some(item => item.consentType === 'health_data' && item.status === 'granted'); const pending = reports.value.find(item => item.status === '待确认' || item.status === '解析失败'); extraction.value = pending ? await healthRepository.getReportExtraction(pending.id) : null }; onShow(load); load()
+const load = async () => {
+  const [reportList, consents] = await Promise.all([healthRepository.listReports(), healthRepository.listConsents()])
+  reports.value = reportList
+  consentGranted.value = consents.some(item => item.consentType === 'health_data' && item.status === 'granted')
+  const pending = reports.value.find(item => item.status === '待确认' || item.status === '解析失败')
+  extraction.value = pending ? await healthRepository.getReportExtraction(pending.id) : null
+}
+onShow(load); load()
 const readBrowserFile = (file: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(new Error('文件读取失败')); reader.readAsDataURL(file) })
 const chooseFile = () => {
   if (!consentGranted.value) { uni.showToast({ title: '请先完成健康资料授权' }); return uni.navigateTo({ url: '/pages/health/consent' }) }
@@ -36,5 +46,27 @@ const go = () => uni.navigateTo({ url: '/pages/result/index' })
 const showReportInfo = () => uni.showToast({ title: '报告已保存，可在健康结果查看指标' })
 const visibleReports = computed(() => activePanel.value === 'history' ? reports.value : reports.value.slice(0, 2))
 </script>
-<template><view class="page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">体检报告</text><text @click="showReportInfo">♧</text></view><view class="tabs"><text :class="{ active: activePanel === 'upload' }" @click="activePanel = 'upload'">上传报告</text><text :class="{ active: activePanel === 'history' }" @click="activePanel = 'history'">历史报告</text></view><template v-if="activePanel === 'upload'"><AppCard><text class="muted">报告会保存到你的健康档案，解析结果目前为演示 Provider</text><view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view></AppCard><AppCard class="upload-card"><input ref="fileInput" class="hidden-input" type="file" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" @change="onFileChange"><view class="upload-box" @click="chooseFile"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><button class="btn" @click.stop="chooseFile">选择文件</button></view><view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view><button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button></AppCard><AppCard v-if="extraction" class="extraction-card"><text v-if="extraction.status === 'failed'" class="error-title">报告解析失败</text><text v-else class="section-title">请确认解析出的指标</text><text class="muted">{{ extraction.status === 'failed' ? (extraction.errorMessage || '当前未能识别报告内容，请检查文件后重试。') : '确认后才会进入健康档案和健康结果' }}</text><view v-if="extraction.status !== 'failed'" v-for="candidate in extraction.candidates" :key="candidate.id" class="candidate"><view class="grow"><text>{{ candidate.name }}</text><text class="muted">置信度 {{ Math.round(candidate.confidence * 100) }}% · {{ candidate.unit }}</text></view><input v-model="candidate.value" class="candidate-input" /><text class="candidate-status">{{ candidate.status }}</text></view><button v-if="extraction.status === 'failed'" class="btn upload-action" :disabled="loading" @click="retryExtraction">{{ loading ? '重新解析中…' : '重新解析报告' }}</button><button v-else class="btn upload-action" :disabled="loading" @click="confirmExtraction">{{ loading ? '保存中…' : '确认并保存指标' }}</button></AppCard></template><template v-else><view class="section-title">历史报告</view></template><AppCard><view v-for="report in visibleReports" :key="report.id" class="history-item" @click="showReportInfo"><view class="file-icon blue">▤</view><view class="grow"><text>{{ report.name }}</text><text class="muted">{{ report.date }} · {{ report.status }}</text></view><text>›</text></view><text v-if="!visibleReports.length" class="muted">暂无历史报告</text></AppCard><AppCard v-if="store.state.hasUploadedReport && activePanel === 'upload'" class="success-card"><text class="tag">解析成功</text><text class="success-text">已生成基础健康结果</text><PrimaryButton label="查看健康结果" @tap="go" /></AppCard><BottomNav active="health" /></view></template>
+
+<template>
+  <view class="page">
+    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">体检报告</text><text @click="showReportInfo">♧</text></view>
+    <view class="tabs"><text :class="{ active: activePanel === 'upload' }" @click="activePanel = 'upload'">上传报告</text><text :class="{ active: activePanel === 'history' }" @click="activePanel = 'history'">历史报告</text></view>
+    <template v-if="activePanel === 'upload'">
+      <AppCard class="upload-card">
+        <text class="section-title">请选择报告类型</text><text class="muted">上传后系统会提取报告中的健康指标，并等待你确认。</text>
+        <view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view>
+        <input ref="fileInput" class="hidden-input" type="file" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" @change="onFileChange">
+        <view class="upload-box" @click="chooseFile"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><button class="btn" @click.stop="chooseFile">选择文件</button></view>
+        <view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view>
+        <button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button>
+      </AppCard>
+      <AppCard v-if="extraction" class="extraction-card"><text v-if="extraction.status === 'failed'" class="error-title">报告解析失败</text><text v-else class="section-title">请确认解析出的指标</text><text class="muted">{{ extraction.status === 'failed' ? (extraction.errorMessage || '当前未能识别报告内容，请检查文件后重试。') : '确认后才会进入健康档案和健康结果' }}</text><view v-if="extraction.status !== 'failed'" v-for="candidate in extraction.candidates" :key="candidate.id" class="candidate"><view class="grow"><text>{{ candidate.name }}</text><text class="muted">置信度 {{ Math.round(candidate.confidence * 100) }}% · {{ candidate.unit }}</text></view><input v-model="candidate.value" class="candidate-input" /><text class="candidate-status">{{ candidate.status }}</text></view><button v-if="extraction.status === 'failed'" class="btn upload-action" :disabled="loading" @click="retryExtraction">{{ loading ? '重新解析中…' : '重新解析报告' }}</button><button v-else class="btn upload-action" :disabled="loading" @click="confirmExtraction">{{ loading ? '保存中…' : '确认并保存指标' }}</button></AppCard>
+    </template>
+    <template v-else><view class="section-title">历史报告</view></template>
+    <AppCard><view v-for="report in visibleReports" :key="report.id" class="history-item" @click="showReportInfo"><view class="file-icon blue">▤</view><view class="grow"><text>{{ report.name }}</text><text class="muted">{{ report.date }} · {{ report.status }}</text></view><text>›</text></view><text v-if="!visibleReports.length" class="muted">暂无历史报告</text></AppCard>
+    <AppCard v-if="store.state.hasUploadedReport && activePanel === 'upload'" class="success-card"><text class="tag">解析成功</text><text class="success-text">已生成基础健康结果</text><PrimaryButton label="查看健康结果" @tap="go" /></AppCard>
+    <BottomNav active="health" />
+  </view>
+</template>
+
 <style scoped>.topbar{height:82rpx;display:flex;align-items:center;justify-content:space-between}.back{font-size:48rpx}.top-title{font-size:36rpx;font-weight:700}.tabs{display:flex;justify-content:space-around;padding:18rpx 0 24rpx;color:#7d8d89}.tabs .active{color:#08b39f;font-weight:700;border-bottom:5rpx solid #08b39f;padding-bottom:14rpx}.upload-card{padding:20rpx}.hidden-input{display:none}.upload-box{padding:50rpx 20rpx 28rpx;border:2rpx dashed #a4d9d1;border-radius:22rpx;text-align:center;background:#fbfffe}.upload-icon,.upload-title,.muted{display:block}.upload-icon{color:#08a990;font-size:72rpx}.upload-title{margin-top:12rpx;font-size:31rpx;font-weight:700}.muted{margin-top:7rpx;color:#7f908c;font-size:22rpx}.upload-box .btn{width:80%;margin-top:24rpx}.upload-action{width:100%;margin-top:18rpx;background:#08a990;color:#fff}.extraction-card{margin-top:18rpx}.error-title{display:block;color:#d35c3f;font-size:31rpx;font-weight:700}.candidate{display:flex;align-items:center;gap:12rpx;padding:20rpx 0;border-bottom:1rpx solid #edf2f1}.candidate-input{width:130rpx;padding:10rpx;border:1rpx solid #c7dbd7;border-radius:10rpx;text-align:right}.candidate-status{color:#d56a43;font-size:23rpx}.file-item,.history-item{display:flex;align-items:center;padding:20rpx 4rpx;border-bottom:1rpx solid #edf2f1}.history-item:last-child{border:0}.file-icon{width:66rpx;height:66rpx;line-height:66rpx;margin-right:18rpx;border-radius:18rpx;text-align:center;color:#08a990;background:#e4faf4;font-size:31rpx}.blue{color:#397cf0;background:#e8efff}.success-card{margin-top:18rpx;background:#f1fffb}.success-text{margin-left:14rpx}.success-card .btn{margin-top:18rpx}</style>

@@ -71,6 +71,15 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(publicCenters.response.status, 200)
   assert.ok(publicCenters.body.data.every(item => item.enabled))
 
+  const registration = await api('/api/v1/auth/customer-register', { method: 'POST', body: JSON.stringify({ email: 'new-member@example.com', password: 'member123', name: '新会员' }) })
+  assert.equal(registration.response.status, 201)
+  assert.equal(registration.body.data.provider, 'email')
+  const newProfile = await api('/api/v1/health/profile', { headers: auth(registration.body.data) })
+  assert.equal(newProfile.response.status, 200)
+  assert.equal(newProfile.body.data, null)
+  const registeredLogin = await api('/api/v1/auth/customer-login', { method: 'POST', body: JSON.stringify({ username: 'new-member@example.com', password: 'member123' }) })
+  assert.equal(registeredLogin.response.status, 200)
+
   const customer = await login('customer', 'u-001')
   const profile = await api('/api/v1/health/profile', { headers: auth(customer) })
   assert.equal(profile.response.status, 200)
@@ -129,7 +138,8 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
     method: 'POST', headers: auth(customer), body: JSON.stringify({ mode: 'immediate_text', requestId: 'integration-request-001' })
   })
   assert.equal(request.response.status, 200)
-  assert.equal(request.body.data.status, 'queued')
+  assert.equal(request.body.data.status, 'assigned')
+  assert.equal(request.body.data.consultantId, 'c-101')
 
   const admin = await login('admin')
   const adminCenters = await api('/api/v1/health-centers', { headers: auth(admin) })
@@ -164,7 +174,7 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.ok(directory.body.data[0].categories?.length)
   const assign = await api('/api/v1/consultation-requests/auto-assign', { method: 'POST', headers: auth(admin), body: '{}' })
   assert.equal(assign.response.status, 200)
-  assert.equal(assign.body.data.assignedCount, 1)
+  assert.equal(assign.body.data.assignedCount, 0)
 
   const consultant = await login('consultant', 'c-101')
   const clientHealth = await api('/api/v1/consultant/clients/u-001/health', { headers: auth(consultant) })

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import { healthRepository } from '../../services/api/repositories'
@@ -19,7 +20,7 @@ const formatDate = (value?: string | null) => value ? value.slice(0, 10) : '暂�
 const activeOrder = computed(() => orders.value.find(item => item.status === '服务中' || item.paymentStatus === 'success'))
 const switchAccount = () => { consultationRepository.logoutCustomer(); uni.reLaunch({ url: '/pages/login/index' }) }
 
-onMounted(async () => {
+const load = async () => {
   try {
     session.value = await consultationRepository.customer()
     const [sources, items, customerOrders] = await Promise.all([healthRepository.listDataSources(), healthRepository.getObservations(), consultationRepository.orders(session.value)])
@@ -32,7 +33,8 @@ onMounted(async () => {
   } finally {
     dataLoading.value = false
   }
-})
+}
+onShow(load)
 
 const items = [
   { label: '我的健康档案', url: '/pages/health/index' },
@@ -68,9 +70,9 @@ if ((import.meta as any).env?.DEV) items.unshift({ label: '本地流程验收（
 </template>
 
 <style scoped>
-.benefit{display:block;width:100%;box-sizing:border-box;position:relative;margin-top:24rpx;padding:30rpx;border-radius:24rpx;color:#fff;background:linear-gradient(135deg,#243149,#344866)}
+.benefit{display:block;width:100%;box-sizing:border-box;position:relative;margin-top:24rpx;padding:30rpx;border-radius:24rpx;color:#fff;background:linear-gradient(135deg,#c85d24,#e89a68)}
 .profile-head{display:flex;align-items:center;padding:28rpx}.avatar{width:96rpx;height:96rpx;line-height:96rpx;margin-right:20rpx;border-radius:50%;text-align:center;color:#fff;background:#e6b6a8;font-size:38rpx;font-weight:700}.name{display:block;font-size:36rpx;font-weight:700}.muted{display:block;margin-top:8rpx;color:#8B8179;font-size:23rpx}.switch{color:#D96B2B;font-size:22rpx}.benefit-title{display:block;margin-bottom:22rpx;color:#ffe29b;font-size:29rpx;font-weight:700}.benefit-date{display:block;margin-top:6rpx;color:#d9e1ea;font-size:22rpx}.benefit-btn{position:absolute;right:24rpx;bottom:28rpx;height:54rpx;line-height:54rpx;padding:0 20rpx;border:0;border-radius:14rpx;color:#364052;background:#ffe29b;font-size:22rpx}
-.data-card{margin-top:16rpx;padding:24rpx;background:#f4fffc}.data-card-head{display:flex;align-items:center;justify-content:space-between}.data-title{font-size:29rpx;font-weight:700;color:#173b38}.data-link{color:#D96B2B;font-size:22rpx}.data-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:22rpx}.data-stats view{text-align:center}.stat-value{display:block;color:#0a8f80;font-size:30rpx;font-weight:800}.stat-label{display:block;margin-top:6rpx;color:#8B8179;font-size:20rpx}.recent-list{margin-top:18rpx;padding-top:16rpx;border-top:1rpx solid #d9f0eb}.recent-item{display:flex;justify-content:space-between;gap:12rpx;padding:10rpx 0}.recent-name{max-width:52%;font-size:22rpx;color:#304743}.normal,.danger{font-size:21rpx}.normal{color:#D96B2B}.danger,.data-error{color:#e45446}.profile-item{display:flex;align-items:center;margin-top:14rpx;padding:22rpx}.profile-icon{width:56rpx;color:#53687a;font-size:30rpx}
+.data-card{margin-top:16rpx;padding:24rpx;background:#fff8f3}.data-card-head{display:flex;align-items:center;justify-content:space-between}.data-title{font-size:29rpx;font-weight:700;color:#5b321e}.data-link{color:#D96B2B;font-size:22rpx}.data-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:22rpx}.data-stats view{text-align:center}.stat-value{display:block;color:#D96B2B;font-size:30rpx;font-weight:800}.stat-label{display:block;margin-top:6rpx;color:#8B8179;font-size:20rpx}.recent-list{margin-top:18rpx;padding-top:16rpx;border-top:1rpx solid #f0ded1}.recent-item{display:flex;justify-content:space-between;gap:12rpx;padding:10rpx 0}.recent-name{max-width:52%;font-size:22rpx;color:#5b463a}.normal,.danger{font-size:21rpx}.normal{color:#D96B2B}.danger,.data-error{color:#e45446}.profile-item{display:flex;align-items:center;margin-top:14rpx;padding:22rpx}.profile-icon{width:56rpx;color:#D96B2B;font-size:30rpx}
 .recent-main{display:flex;align-items:center;gap:8rpx;max-width:52%}.recent-category{padding:3rpx 8rpx;border-radius:8rpx;color:#D96B2B;background:#FFF0E5;font-size:17rpx}
 </style>
 

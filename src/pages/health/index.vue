@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import SectionTitle from '../../components/SectionTitle.vue'
@@ -14,7 +15,8 @@ const healthScore = computed(() => {
   const abnormal = observations.value.filter(item => item.status !== '正常').length
   return String(Math.max(0, Math.round(100 - abnormal / observations.value.length * 35)))
 })
-onMounted(async () => { observations.value = await healthRepository.getObservations(); trends.value = await healthRepository.getTrends('weight') })
+const load = async () => { observations.value = await healthRepository.getObservations(); trends.value = await healthRepository.getTrends('weight') }
+onShow(load)
 const go = (url: string) => uni.navigateTo({ url })
 </script>
 

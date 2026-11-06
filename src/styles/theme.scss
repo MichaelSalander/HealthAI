@@ -39,7 +39,7 @@ view.page, view.card, view.hero, view.upload-box { display: block; }
 .metric-name { color: $muted; font-size: 24rpx; }
 .metric-value { font-size: 36rpx; font-weight: 700; margin-top: 12rpx; }
 .danger { color: $danger; }
-.list-item { display: flex; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid #edf2f1; }
+.list-item { display: flex; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid #F3E8E0; }
 .list-item:last-child { border-bottom: 0; }
 .icon-box { width: 72rpx; height: 72rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: #fff0e5; margin-right: 18rpx; font-size: 34rpx; }
 .grow { flex: 1; }
@@ -52,5 +52,6 @@ view.page, view.card, view.hero, view.upload-box { display: block; }
 .image, image { max-width: 100%; box-sizing: border-box; }
 text, view, button, input, textarea { box-sizing: border-box; }
 text { max-width: 100%; overflow-wrap: anywhere; }
-.chart { height: 180rpx; display: flex; align-items: flex-end; gap: 16rpx; padding: 18rpx 12rpx; border-bottom: 2rpx solid #f1d8c8; }
+.chart { height: 180rpx; display: flex; align-items: flex-end; gap: 16rpx; padding: 18rpx 12rpx; border-bottom: 2rpx solid #F0DED1; }
 .bar { flex: 1; background: linear-gradient(#e9935e, #f8d9c4); border-radius: 12rpx 12rpx 0 0; }
+

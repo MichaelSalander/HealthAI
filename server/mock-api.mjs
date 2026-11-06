@@ -83,16 +83,10 @@ const initialState = {
     { id: 'edu-002', title: '如何看懂体检报告中的血脂指标', category: '指标解读', summary: '用简单方式认识总胆固醇、LDL-C 等常见指标。', body: '指标应结合参考范围、既往趋势与专业人员建议综合理解。', status: 'published', publishedAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z', sort: 2 },
     { id: 'edu-003', title: '睡眠、压力与体重管理', category: '生活方式', summary: '认识睡眠与压力对日常健康管理的影响。', body: '稳定作息、适度运动和持续记录有助于发现个人健康趋势。', status: 'draft', updatedAt: '2026-10-03T00:00:00.000Z', sort: 3 }
   ],
-  profiles: { 'u-001': { id: 'hp-001', userId: 'u-001', gender: '女', birthYear: '1992', heightCm: '165', medicalHistory: '', allergies: '', medications: '', lifestyle: '久坐，偶尔运动', updatedAt: new Date().toISOString() } },
-  reports: { 'u-001': [{ id: 'r-001', name: '2024年度体检报告.pdf', date: '2024-10-10', status: '解析成功', source: '体检报告' }, { id: 'r-002', name: '2023年度体检报告.pdf', date: '2023-09-12', status: '解析成功', source: '体检报告' }] },
-  observations: { 'u-001': [
-    { id: 'o-001', code: 'ldl-c', name: 'LDL-C（低密度脂蛋白）', value: '4.2', unit: 'mmol/L', reference: '< 3.4', status: '偏高', measuredAt: '2024-10-10' },
-    { id: 'o-002', code: 'alt', name: 'ALT（丙氨酸转氨酶）', value: '68', unit: 'U/L', reference: '< 40', status: '偏高', measuredAt: '2024-10-10' },
-    { id: 'o-003', code: 'fasting-glucose', name: '空腹血糖', value: '6.8', unit: 'mmol/L', reference: '< 6.1', status: '偏高', measuredAt: '2024-10-10' },
-    { id: 'o-004', code: 'blood-pressure', name: '血压', value: '120/78', unit: 'mmHg', reference: '< 140/90', status: '正常', measuredAt: '2024-12-10' },
-    { id: 'o-005', code: 'weight', name: '体重', value: '62.5', unit: 'kg', reference: '目标 55.0', status: '正常', measuredAt: '2024-12-10' }
-  ] },
-  aiReports: { 'u-001': [] },
+  profiles: {},
+  reports: {},
+  observations: {},
+  aiReports: {},
   consents: {},
   reportExtractions: {},
   homeEntries: [
@@ -108,7 +102,7 @@ const initialState = {
     { id: 'p-003', name: '高级健康管理', level: '高级', cycle: '月', priceFen: 298000, description: '每日数据追踪、每周1次1V1、个性化方案', enabled: true },
     { id: 'p-004', name: '慢病健康管理 7天体验', level: '慢病', cycle: '7天', priceFen: 69900, description: '慢病一对一体验与必要时转介', enabled: true }
   ],
-  orders: { 'u-001': [] },
+  orders: {},
   consultantAvailability: { 'c-001': { consultantId: 'c-001', status: 'available', dailyLimit: 10, bookedCount: 2, freeConsultEnabled: true, slots: ['今天 14:00', '今天 16:30', '明天 10:00', '明天 15:00'] } },
   bookings: [],
   notifications: []
@@ -120,6 +114,21 @@ const storageStore = databaseMode === 'json'
     ? await openPostgresStore({ connectionString: databaseUrl, seedFile: dataFile, ssl: process.env.HEALTHAI_DB_SSL === 'true' })
     : await openSqliteStore({ dbFile: databaseFile, seedFile: dataFile })
 let state = loadState()
+// 移除旧版本随包附带的演示客户数据；不会清理用户自行上传或注册产生的其他数据。
+let removedLegacySeed = false
+for (const key of ['profiles', 'reports', 'observations', 'aiReports', 'orders']) {
+  if (state[key]?.['u-001']) { delete state[key]['u-001']; removedLegacySeed = true }
+}
+if (state.customerAccounts?.some(item => item.id === 'u-001')) {
+  state.customerAccounts = state.customerAccounts.filter(item => item.id !== 'u-001')
+  removedLegacySeed = true
+}
+if (state.wechatIdentities) {
+  for (const [key, item] of Object.entries(state.wechatIdentities)) {
+    if (item?.id === 'u-001') { delete state.wechatIdentities[key]; removedLegacySeed = true }
+  }
+}
+if (removedLegacySeed) persist()
 // 客户账号由 API 持久化管理。环境变量账号只作为首次启动时的预置账号，
 // 新注册账号只保存密码哈希，不保存明文密码。
 state.customerAccounts ||= customerAccounts.map(item => ({ ...item }))

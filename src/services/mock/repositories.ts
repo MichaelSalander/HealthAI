@@ -1,10 +1,10 @@
-import { mockObservations, mockPlans, mockReports, mockUser } from './data'
+import { mockPlans, mockUser } from './data'
 import type { AIRepository, AuthProvider, CommerceRepository, ConsultantRepository, ContentRepository, EducationArticle, HealthRepository, HomeEntry, ContentSettings } from '../api/contracts'
 import type { Consultant, HealthProfile, HealthReport, Observation, ReportExtraction, ServicePlan } from '../../types/domain'
 import type { DemoSession } from '../../types/consultation'
 import { consultationRepository } from '../api/consultation'
 
-type StorageKey = 'healthai_profile' | 'healthai_reports' | 'healthai_observations' | 'healthai_orders'
+type StorageKey = 'healthai_profile_v2' | 'healthai_reports_v2' | 'healthai_observations_v2' | 'healthai_orders_v2'
 const apiBase = (() => {
   const configured = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
   const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
@@ -48,20 +48,20 @@ async function apiRequestRequired<T>(path: string, init?: RequestInit, session?:
   return body.data as T
 }
 
-let reports = readStorage('healthai_reports', [...mockReports])
-let observations = readStorage('healthai_observations', [...mockObservations])
-let orders = readStorage<import('../../types/domain').Order[]>('healthai_orders', [])
+let reports: HealthReport[] = readStorage<HealthReport[]>('healthai_reports_v2', [])
+let observations: Observation[] = readStorage<Observation[]>('healthai_observations_v2', [])
+let orders = readStorage<import('../../types/domain').Order[]>('healthai_orders_v2', [])
 const blankProfile = (userId: string): HealthProfile => ({ id: `hp-${userId}`, userId, gender: '', birthYear: '', heightCm: '', medicalHistory: '', allergies: '', medications: '', lifestyle: '', updatedAt: '' })
 let profile = blankProfile('u-new')
-const sessionUser = (session: DemoSession): typeof mockUser => ({ id: session.id, name: session.name, avatar: session.role === 'consultant' ? '👩🏻‍⚕️' : '👩🏻', healthScore: mockUser.healthScore })
+const sessionUser = (session: DemoSession): typeof mockUser => ({ id: session.id, name: session.name, avatar: session.role === 'consultant' ? '🧑‍⚕️' : '👤', healthScore: 0 })
 export const authProvider: AuthProvider = { async login() { return sessionUser(await consultationRepository.customer()) }, async wechatLogin() { return sessionUser(await consultationRepository.loginWithWechat('customer')) } }
 export const healthRepository: HealthRepository = {
   async getProfile() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile | null>('/health/profile', undefined, session); profile = remote || blankProfile(session.id); return profile },
-  async saveProfile(input) { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile>('/health/profile', { method: 'PUT', body: JSON.stringify(input) }, session); profile = remote; writeStorage('healthai_profile', profile); return profile },
+  async saveProfile(input) { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthProfile>('/health/profile', { method: 'PUT', body: JSON.stringify(input) }, session); profile = remote; writeStorage('healthai_profile_v2', profile); return profile },
   async getProfileCompleteness() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthProfileCompleteness>('/health/profile/completeness', undefined, session) },
   async listConsents() { return consultationRepository.consents() },
   async grantConsent(consentType = 'health_data', version = 'v1') { return consultationRepository.saveConsent(consentType, version, 'granted') },
-  async getObservations() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<Observation[]>('/health/observations', undefined, session); observations = remote; writeStorage('healthai_observations', observations); return remote },
+  async getObservations() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<Observation[]>('/health/observations', undefined, session); observations = remote; writeStorage('healthai_observations_v2', observations); return remote },
   async hasBloodTest() { return (await consultationRepository.eligibility()).hasBloodTest },
   async getTrends(code: string) {
     const session = await consultationRepository.customer()
@@ -70,12 +70,12 @@ export const healthRepository: HealthRepository = {
   async listDataSources() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthDataSources>('/health/data-sources', undefined, session) },
   async getLatestResult() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').HealthResultSummary>('/health/results/latest', undefined, session) },
   async listHealthCenters() { return consultationRepository.healthCenters() },
-  async listReports() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthReport[]>('/health/reports', undefined, session); reports = remote; writeStorage('healthai_reports', reports); return remote },
-  async uploadReport(fileName, kind = 'general', upload) { const report = await consultationRepository.uploadDemoReport(fileName, kind, upload); reports = [report, ...reports.filter(item => item.id !== report.id)]; writeStorage('healthai_reports', reports); return report },
+  async listReports() { const session = await consultationRepository.customer(); const remote = await apiRequestRequired<HealthReport[]>('/health/reports', undefined, session); reports = remote; writeStorage('healthai_reports_v2', reports); return remote },
+  async uploadReport(fileName, kind = 'general', upload) { const report = await consultationRepository.uploadDemoReport(fileName, kind, upload); reports = [report, ...reports.filter(item => item.id !== report.id)]; writeStorage('healthai_reports_v2', reports); return report },
   async getReportExtraction(reportId: string) { return consultationRepository.reportExtraction(reportId) },
-  async retryReportExtraction(reportId: string) { const extraction = await consultationRepository.retryReportExtraction(reportId); reports = reports.map(report => report.id === reportId ? { ...report, status: '待确认' as const } : report); writeStorage('healthai_reports', reports); return extraction },
-  async confirmReport(reportId: string, candidates: ReportExtraction['candidates']) { const confirmed = await consultationRepository.confirmReport(reportId, candidates); observations = [...confirmed, ...observations.filter(item => item.sourceRef !== reportId)]; writeStorage('healthai_observations', observations); reports = reports.map(report => report.id === reportId ? { ...report, status: '解析成功' as const } : report); writeStorage('healthai_reports', reports); return confirmed },
-  async addObservation(input) { const session = await consultationRepository.customer(); const observation = await apiRequestRequired<Observation>('/health/observations', { method: 'POST', body: JSON.stringify(input) }, session); observations = [observation, ...observations.filter(item => item.id !== observation.id)]; writeStorage('healthai_observations', observations); return observation }
+  async retryReportExtraction(reportId: string) { const extraction = await consultationRepository.retryReportExtraction(reportId); reports = reports.map(report => report.id === reportId ? { ...report, status: '待确认' as const } : report); writeStorage('healthai_reports_v2', reports); return extraction },
+  async confirmReport(reportId: string, candidates: ReportExtraction['candidates']) { const confirmed = await consultationRepository.confirmReport(reportId, candidates); observations = [...confirmed, ...observations.filter(item => item.sourceRef !== reportId)]; writeStorage('healthai_observations_v2', observations); reports = reports.map(report => report.id === reportId ? { ...report, status: '解析成功' as const } : report); writeStorage('healthai_reports_v2', reports); return confirmed },
+  async addObservation(input) { const session = await consultationRepository.customer(); const observation = await apiRequestRequired<Observation>('/health/observations', { method: 'POST', body: JSON.stringify(input) }, session); observations = [observation, ...observations.filter(item => item.id !== observation.id)]; writeStorage('healthai_observations_v2', observations); return observation }
 }
 export const consultantRepository: ConsultantRepository = { async list() { const remote = await consultationRepository.directory(); return remote.map(item => ({ id: item.id, name: item.name, level: item.level as Consultant['level'], categories: item.categories || ['健康管理'], rating: 5, clients: item.bookedCount, avatar: '👩🏻‍⚕️' })) } }
 const fallbackHomeEntries: HomeEntry[] = [
@@ -95,4 +95,4 @@ async function fetchJson<T>(path: string, fallback: T): Promise<T> {
 }
 export const contentRepository: ContentRepository = { async listHomeEntries() { return fetchJson<HomeEntry[]>('/home-entries', fallbackHomeEntries) }, async listContentSettings() { return fetchJson<ContentSettings>('/content-settings', fallbackContentSettings) }, async listEducationArticles() { return fetchJson<EducationArticle[]>('/education/articles', fallbackEducationArticles) } }
 export const aiRepository: AIRepository = { async generateReport() { const session = await consultationRepository.customer(); return apiRequestRequired<import('../../types/domain').AIHealthReport>('/health/ai-reports/generate', { method: 'POST', body: JSON.stringify({}) }, session) } }
-export const commerceRepository: CommerceRepository = { async listPlans() { return fetchJson<ServicePlan[]>('/plans', mockPlans) }, async listOrders() { const remote = await consultationRepository.orders(); orders = remote; writeStorage('healthai_orders', orders); return remote }, async createMockOrder(plan: ServicePlan) { const order = await consultationRepository.createOrder(plan); const paid = await consultationRepository.mockPay(order.id); orders = [paid, ...orders.filter(item => item.id !== paid.id)]; writeStorage('healthai_orders', orders); return paid } }
+export const commerceRepository: CommerceRepository = { async listPlans() { return fetchJson<ServicePlan[]>('/plans', mockPlans) }, async listOrders() { const remote = await consultationRepository.orders(); orders = remote; writeStorage('healthai_orders_v2', orders); return remote }, async createMockOrder(plan: ServicePlan) { const order = await consultationRepository.createOrder(plan); const paid = await consultationRepository.mockPay(order.id); orders = [paid, ...orders.filter(item => item.id !== paid.id)]; writeStorage('healthai_orders_v2', orders); return paid } }

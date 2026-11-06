@@ -11,10 +11,10 @@ function fixture() {
   const book = (extra = {}, actor = customer) => call('consultations/bookings', 'POST', { consultantId: c.id, slotId: c.slots[0].id, requestId: 'request-1', ...extra }, actor)
   return { state, call, book, customer, admin, c }
 }
-test('blood report required; a manually entered blood value does not establish eligibility', () => {
+test('blood report is optional for consultant matching; eligibility remains informational', () => {
   const f = fixture(); f.state.reports['u-001'] = []; f.state.observations = { 'u-001': [{ code: 'fasting-glucose' }] }
   assert.equal(f.call('consultations/eligibility').hasBloodTest, false)
-  assert.throws(() => f.book(), /血液检测/)
+  assert.equal(f.book().status, 'pending_assignment')
 })
 test('duplicate submission is idempotent and slot reservations cannot oversell', () => {
   const f = fixture(); const first = f.book(); assert.equal(f.book().id, first.id)

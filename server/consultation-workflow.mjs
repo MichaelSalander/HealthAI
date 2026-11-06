@@ -84,7 +84,6 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   }
   if (route === '/api/consultation-requests' && method === 'POST') {
     requireRole('customer')
-    if (!hasBloodTest(actor.id)) fail('请先上传并确认血液检测报告', 422)
     if (typeof body.requestId !== 'string' || !body.requestId) fail('缺少请求标识', 400)
     if (!['immediate_text', 'immediate_voice', 'scheduled'].includes(body.mode)) fail('咨询方式无效', 400)
     const existing = db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
@@ -161,7 +160,6 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   }
   if (route === '/api/consultations/bookings' && method === 'POST') {
     requireRole('customer')
-    if (!hasBloodTest(actor.id)) fail('请先上传并确认血液检测报告', 422)
     if (typeof body.requestId !== 'string' || !body.requestId) fail('缺少请求标识', 400)
     const existing = db.bookings.find(b => b.userId === actor.id && b.requestId === body.requestId)
     if (existing) return existing

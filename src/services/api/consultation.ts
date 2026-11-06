@@ -56,7 +56,6 @@ export const consultationRepository = {
       if (saved) { consultantSession = saved; return Promise.resolve(saved) }
       if (!isDemoMode) return Promise.reject(new Error('请先登录健管师账号'))
     }
-    if (role === 'customer' && !isDemoMode && env.VITE_AUTH_MODE !== 'wechat') return Promise.reject(new Error('请先完成微信登录'))
     return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => role === 'customer' ? persistCustomerSession(session) : session)
   },
   operatorLogin(username: string, password: string) {
@@ -70,6 +69,7 @@ export const consultationRepository = {
   },
   loginWithWechat(role: DemoRole = 'customer') {
     return new Promise<DemoSession>((resolve, reject) => {
+      if (typeof window !== 'undefined') return reject(new Error('微信登录需在微信小程序内使用；当前 H5 请使用 Email 登录'))
       const login = (uni as typeof uni & { login?: (options: { provider: string; success: (result: { code?: string }) => void; fail: (error: unknown) => void }) => void }).login
       if (!login) return reject(new Error('当前运行环境不支持微信登录，请使用微信小程序预览'))
       login({ provider: 'weixin', success: result => result.code ? this.wechatLogin(result.code, role).then(session => { if (role === 'customer') persistCustomerSession(session); resolve(session) }).catch(reject) : reject(new Error('微信未返回登录 code')), fail: () => reject(new Error('微信登录失败，请重试')) })

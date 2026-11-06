@@ -56,7 +56,7 @@ const visibleReports = computed(() => activePanel.value === 'history' ? reports.
         <text class="section-title">请选择报告类型</text><text class="muted">上传后系统会提取报告中的健康指标，并等待你确认。</text>
         <view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view>
         <input id="report-file" ref="fileInput" class="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" @change="onFileChange">
-        <view class="upload-box"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><label class="btn file-label" for="report-file">选择文件</label></view>
+        <view class="upload-box"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><view class="btn file-label" @click="chooseFile">选择文件</view></view>
         <view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view>
         <button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button>
       </AppCard>

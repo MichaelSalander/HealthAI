@@ -11,6 +11,8 @@ const confirmPassword = ref('')
 const mode = ref<'login' | 'register'>('login')
 const loading = ref(false)
 const error = ref('')
+// 微信登录接口保留给小程序版本；当前 H5 / 测试入口先隐藏，避免用户误点不可用入口。
+const showWechatLogin = false
 
 onLoad(() => {
   if (uni.getStorageSync('healthai_customer_session')) uni.reLaunch({ url: '/pages/home/index' })
@@ -51,7 +53,7 @@ async function wechatLogin() {
   <view class="page">
     <view class="brand">HealthAI</view>
     <view class="title">登录健康管理</view>
-    <view class="subtitle">使用账号密码或微信登录，继续管理你的健康资料</view>
+    <view class="subtitle">使用 Email 登录或注册，继续管理你的健康资料</view>
     <view class="form-card">
       <template v-if="mode === 'login'">
         <input v-model="username" class="field" placeholder="请输入 Email" maxlength="64" />
@@ -65,8 +67,10 @@ async function wechatLogin() {
       <text v-if="error" class="error">{{ error }}</text>
       <button class="primary" :disabled="loading" @click="mode === 'login' ? passwordLogin() : register()">{{ loading ? (mode === 'login' ? '登录中…' : '注册中…') : (mode === 'login' ? 'Email 登录' : '注册并开始使用') }}</button>
       <text class="switch" @click="mode = mode === 'login' ? 'register' : 'login'; error = ''">{{ mode === 'login' ? '没有账号？立即注册' : '已有账号？返回登录' }}</text>
-      <view class="divider"><view /> <text>或</text> <view /></view>
-      <button class="wechat" :disabled="loading" @click="wechatLogin">微信登录</button>
+      <template v-if="showWechatLogin">
+        <view class="divider"><view /> <text>或</text> <view /></view>
+        <button class="wechat" :disabled="loading" @click="wechatLogin">微信登录</button>
+      </template>
     </view>
     <text class="hint">Email 注册暂不要求验证，注册后可直接建立健康档案。</text>
   </view>

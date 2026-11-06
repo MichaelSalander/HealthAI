@@ -293,7 +293,7 @@ const server = http.createServer(async (req, res) => {
   if (route === '/healthz' && req.method === 'GET') return send(res, 200, { code: 0, data: { service: 'healthai-api', status: 'ok', version: apiVersion } })
   if (route === '/readyz' && req.method === 'GET') {
     const issues = readinessIssues()
-    return send(res, issues.length ? 503 : 200, { code: issues.length ? 503 : 0, data: { service: 'healthai-api', status: issues.length ? 'not_ready' : 'ready', version: apiVersion, issues } })
+    return send(res, issues.length ? 503 : 200, { code: issues.length ? 503 : 0, data: { service: 'healthai-api', status: issues.length ? 'not_ready' : 'ready', version: apiVersion, issues, providers: { llm: aiProvider.name, ocr: ocrProvider.name } } })
   }
   if (route === '/api/auth/operator-login' && req.method === 'POST') {
     const body = await readBody(req)

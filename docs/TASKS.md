@@ -165,3 +165,4 @@
 - [x] T496 正式支付安全闸门：未配置真实支付 Provider 时拒绝 Mock 支付，不再向用户显示虚假支付成功
 - [x] T497 H5 双入口产物同步：建置后同步 `dist/build/h5` 与 legacy `dist`，避免 Cloudways 入口继续读取旧前端 bundle
 - [x] T498 正式環境會員登入收口：无会员 Session 时不再调用 demo-login；只能进入 Email／微信登录注册流程，演示客户切换仅保留开发环境
+- [x] T499 Provider 状态与登录入口收口：健康检查返回当前 LLM／OCR Provider；H5 暂时隐藏微信登录按钮，保留后端接口与小程序接入路径；测试资料不再自动清理

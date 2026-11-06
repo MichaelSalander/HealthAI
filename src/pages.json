@@ -29,9 +29,9 @@
     ,{ "path": "pages/plans/formal", "style": { "navigationBarTitleText": "正式方案" } }
     ,{ "path": "pages/services/addons", "style": { "navigationBarTitleText": "增值服务" } }
     ,{ "path": "pages/order/confirm", "style": { "navigationBarTitleText": "订单确认" } }
-    ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "咨询房间" } }
+    ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "一对一健康咨询" } }
     ,{ "path": "pages/consultation/waiting", "style": { "navigationBarTitleText": "等待配对" } }
-    ,{ "path": "pages/consultant/room", "style": { "navigationBarTitleText": "咨询房间" } }
+    ,{ "path": "pages/consultant/room", "style": { "navigationBarTitleText": "一对一健康咨询" } }
     ,{ "path": "pages/trends/index", "style": { "navigationBarTitleText": "历史趋势" } }
     ,{ "path": "pages/records/index", "style": { "navigationBarTitleText": "服务记录" } }
     ,{ "path": "pages/orders/index", "style": { "navigationBarTitleText": "我的订单" } }

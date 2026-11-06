@@ -36,13 +36,13 @@ function connectRealtime() {
   socket.onclose = () => { socket = undefined }
 }
 function start() { stop(); connectRealtime(); timer = setInterval(load, 5000) }
-function showRoomMenu() { uni.showModal({ title: '咨询房间', content: '请使用健康摘要、语音咨询和结束咨询完成本次服务。', showCancel: false }) }
+function showRoomMenu() { uni.showModal({ title: '一对一健康咨询', content: '请使用健康摘要和文字沟通完成本次服务，语音功能暂未开启。', showCancel: false }) }
 onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined); load(); start() }); onHide(() => { stop(); socket?.close(); socket = undefined }); onUnload(() => { stop(); socket?.close(); socket = undefined }); onBeforeUnmount(() => { stop(); socket?.close(); socket = undefined })
 </script>
 
 <template>
   <view class="room-shell">
-    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || '咨询房间' }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more" @click="showRoomMenu">⋯</view></view>
+    <view class="room-topbar"><view class="back" @click="emit('back')">‹</view><view class="room-title"><text>{{ otherPerson?.name || '一对一健康咨询' }}</text><view class="presence"><view class="presence-dot" :class="{ offline: !otherPerson?.online }" /><text>{{ statusText }}</text></view></view><view class="room-more" @click="showRoomMenu">⋯</view></view>
     <view class="room-banner"><view class="room-avatar">{{ otherPerson?.name?.slice(0, 1) || '健' }}</view><view class="room-banner-copy"><text class="room-banner-title">一对一健康咨询</text><text class="room-banner-subtitle">与健管师在线沟通健康问题</text></view><view class="room-live" :class="{ talking: voice?.status === 'connected' }">{{ voice?.status === 'connected' ? '通话中' : '文字沟通' }}</view></view>
     <view v-if="error && accessDenied" class="room-invalid"><text class="invalid-title">咨询房间不可用</text><text class="invalid-copy">{{ error }}</text><button class="invalid-action" @click="emit('back')">返回咨询列表</button></view>
     <view v-else-if="error" class="room-error">{{ error }}</view>

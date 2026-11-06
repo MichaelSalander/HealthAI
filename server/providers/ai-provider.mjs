@@ -40,7 +40,7 @@ export function createAiProvider({ name = process.env.LLM_PROVIDER || 'mock' } =
     name: 'openai-compatible',
     async generate({ observations }) {
       const timeoutMs = Math.min(Math.max(Number(process.env.LLM_TIMEOUT_MS || 30000), 3000), 120000)
-      const response = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', signal: AbortSignal.timeout(timeoutMs), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: '你是健康管理辅助分析模型。只返回 JSON，不做诊断或开药。JSON 必须包含 summary、riskLevel（低风险/需关注/高风险）、focusAreas（字符串数组）、consultantInsight、recommendations（字符串数组）。' }, { role: 'user', content: JSON.stringify({ observations }) }] }) })
+      const response = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', signal: AbortSignal.timeout(timeoutMs), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: '你是健康管理师的辅助分析模型。只返回 JSON，不做疾病诊断、不下处方、不替代医生。必须严格基于输入指标，并用简体中文输出。JSON 必须包含 summary（适合放在顶部的一句话总结，40字以内）、riskLevel（低风险/需关注/高风险）、focusAreas（字符串数组）、consultantInsight（给健管师看的详细分析，按“1. 血常规：...\\n2. 血糖与血脂：...\\n3. 肝肾功能：...”结构；没有对应指标时不要虚构）、recommendations（字符串数组，3-6条可执行健康建议）。如果所有指标正常，要明确说明整体状态良好，但仍需建议规律作息、均衡饮食、适度运动和按计划复查。' }, { role: 'user', content: JSON.stringify({ observations }) }] }) })
       if (!response.ok) throw new Error(`LLM Provider 请求失败：${response.status}`)
       const payload = await response.json(); const content = payload.choices?.[0]?.message?.content
       const result = parseJson(content)

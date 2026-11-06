@@ -136,7 +136,7 @@
 - [x] T501c DeepSeek PDF OCR Provider：提取文字型 PDF 的文字层并调用 DeepSeek 结构化候选指标；生产环境通过 `OCR_PROVIDER=deepseek` 启用
 - [x] T501d 扫描 PDF OCR：无文字层 PDF 通过可配置页面渲染器转 PNG，再调用 DeepSeek Vision 并保留页码与用户确认流程
 - [x] T502 文字咨询即时接收：Node WebSocket 房间广播、登录 Token 鉴权与 H5 自动重连；HTTP 发送与轮询作为兼容备援
-- [ ] T501b OpenAI AI 分析正式验收：配置 API Key、模型与预算上限后，用真实报告完成 OCR 与 AI 结果验收
+- [ ] T501b 正式 AI 分析验收：配置生产 LLM/OCR Provider、API Key、模型与预算上限后，用真实报告完成 OCR 与 AI 结果验收（需运营凭证）
 - [x] T477 Email 会员注册：新增免验证 Email 注册、登录后建立空白健康档案，并保留微信登录入口
 - [x] T478 会员资料编辑状态：个人数据默认只读，点击“修改资料”后才能编辑并保存
 - [x] T479 报告上传流程文案：上传时选择报告类型，移除客户端“演示 Provider”提示
@@ -159,5 +159,7 @@
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。线上浏览器已验证未登录客户会导向登录页，并用新 Email 会员完成 PDF 选择、上传、解析候选指标、确认入档及健康结果查看；另外使用 26 页、4.5MB 的真实血检报告完成 DeepSeek 解析与确认入档，并用该报告首页 PNG 完成图片上传、DeepSeek 图片解析及待确认状态验证。管理后台已完成 `pnpm --dir console run typecheck` 与 `pnpm --dir console run build`；本轮新增管理员 API 已用管理员 Token 实际请求验证：`/admin/overview` 返回真实空数据统计，`/admin/orders` 返回真实空订单列表。Cloudways commit `dea8ddb` 已部署成功；本轮品牌、路由与管理后台真实数据修正尚待部署。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单及正式运营账号；目前环境页仍显示 `NODE_ENV=development`。
+主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。线上浏览器已验证未登录客户会导向登录页，并用新 Email 会员完成 PDF 选择、上传、解析候选指标、确认入档及健康结果查看；另外使用真实血检报告完成 DeepSeek 解析与确认入档，并用报告首页 PNG 完成图片上传、图片解析及待确认状态验证。管理后台已完成 `pnpm --dir console run typecheck` 与 `pnpm --dir console run build`；管理员 API 已用管理员 Token 实际请求验证。旧演示客户与旧咨询房间已由 Cloudways commit `02a7633` 部署并在线验证清理；本轮健管师资料 API、认证材料上传及正式支付安全闸门待随本轮提交部署。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单、正式运营账号及正式 Provider 凭证。
 - [x] T494 移除正式環境舊演示資料：啟動時清理舊客戶、預約、通知、房間與訊息，並驗證健管師工作台回到真實空狀態
+- [x] T495 健管师资料真实化：资料保存、认证材料上传与列表均通过后端 API，不再显示硬编码资料或 Mock 保存提示
+- [x] T496 正式支付安全闸门：未配置真实支付 Provider 时拒绝 Mock 支付，不再向用户显示虚假支付成功

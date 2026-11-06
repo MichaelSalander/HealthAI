@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto'
 const active = b => ['pending_assignment', 'assigned', 'accepted'].includes(b.status)
 const fail = (message, status = 409) => { throw Object.assign(new Error(message), { status }) }
 const people = [
-  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['体重管理', '运动营养'] },
-  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['睡眠管理', '女性健康'] },
-  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false, categories: ['慢病管理'] }
+  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['体重管理', '运动营养'], phone: '', intro: '' },
+  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['睡眠管理', '女性健康'], phone: '', intro: '' },
+  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false, categories: ['慢病管理'], phone: '', intro: '' }
 ]
 export function seedWorkflow() {
   const start = new Date(); start.setUTCHours(0, 0, 0, 0); start.setUTCDate(start.getUTCDate() + 1)
@@ -176,7 +176,9 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     const c = db.consultants.find(c => c.id === settings[1]); if (!c) fail('健管师不存在', 404)
     if (!['available', 'full', 'offline'].includes(body.status) || !Number.isInteger(body.dailyLimit) || body.dailyLimit < 1 || body.dailyLimit > 100) fail('状态或每日名额无效', 400)
     if (body.freeConsultEnabled !== c.freeConsultEnabled && actor.role !== 'admin') fail('免费咨询资格由管理员配置', 403)
-    if (actor.role === 'consultant' && (body.status === 'full' || body.dailyLimit !== c.dailyLimit || JSON.stringify(body.slots) !== JSON.stringify(c.slots))) fail('健管师不能删除、修改或自行设置满额、名额或咨询时段，由平台统一安排', 403)
+    const requestedSlots = Array.isArray(body.slots) ? body.slots.map(slot => ({ id: slot.id, startAt: slot.startAt, capacity: slot.capacity })) : []
+    const currentSlots = c.slots.map(slot => ({ id: slot.id, startAt: slot.startAt, capacity: slot.capacity }))
+    if (actor.role === 'consultant' && (body.status === 'full' || body.dailyLimit !== c.dailyLimit || JSON.stringify(requestedSlots) !== JSON.stringify(currentSlots))) fail('健管师不能删除、修改或自行设置满额、名额或咨询时段，由平台统一安排', 403)
     if (!Array.isArray(body.slots) || body.slots.length > 100) fail('时段格式无效', 400)
     const slots = body.slots.map(s => {
       if (!s.id || !Number.isFinite(Date.parse(s.startAt)) || !Number.isInteger(s.capacity) || s.capacity < 1 || s.capacity > 20) fail('请填写有效时间与容量', 400)
@@ -186,7 +188,10 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     })
     if (new Set(slots.map(s => s.id)).size !== slots.length || new Set(slots.map(s => s.startAt)).size !== slots.length) fail('时段重复', 400)
     if (c.slots.some(s => occupied(c.id, s.id) && !slots.some(x => x.id === s.id))) fail('不能删除已有预约的时段')
-    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), slots }); audit('availability.updated', c.id); return project(c)
+    const categories = Array.isArray(body.categories) ? body.categories.map(value => String(value).trim()).filter(Boolean).slice(0, 9) : c.categories
+    const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : c.phone || ''
+    const intro = typeof body.intro === 'string' ? body.intro.trim().slice(0, 500) : c.intro || ''
+    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), slots, categories, phone, intro }); audit('availability.updated', c.id); return project(c)
   }
   const assign = route.match(/^\/api\/consultations\/bookings\/([^/]+)\/assign$/)
   const assignOne = (b, c) => {

@@ -13,7 +13,7 @@ const plan = computed(() => addon.value || plans.value.find(item => item.id === 
 const payment = ref<'wechat' | 'alipay'>('wechat')
 const chooseCoupon = () => uni.showModal({ title: '优惠信息', content: '当前暂无可用优惠券', showCancel: false })
 const shareOrder = () => uni.showToast({ title: '订单页面已准备分享' })
-const pay = async () => { if (!plan.value) return; await commerceRepository.createMockOrder(plan.value); uni.showToast({ title: 'Mock支付成功' }); setTimeout(() => uni.navigateTo({ url: '/pages/orders/index' }), 500) }
+const pay = async () => { if (!plan.value) return; try { await commerceRepository.createMockOrder(plan.value); uni.showToast({ title: '订单已提交' }); setTimeout(() => uni.navigateTo({ url: '/pages/orders/index' }), 500) } catch (error) { uni.showModal({ title: '暂时无法支付', content: (error as Error).message || '正式支付服务尚未配置，请稍后再试', showCancel: false }) } }
 </script>
 <template>
   <view class="page order-page">

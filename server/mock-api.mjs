@@ -361,6 +361,24 @@ const server = http.createServer(async (req, res) => {
     const token = issueToken(actor)
     return send(res, 200, { code: 0, data: { token, ...actor, provider: 'wechat-mini-program', expiresIn: sessionTtlSeconds } })
   }
+  if (route === '/api/consultant/profile/certificates' && req.method === 'GET') {
+    const actor = requireActor(req, ['consultant', 'admin'])
+    const consultantId = actor.role === 'consultant' ? actor.id : String(url.searchParams.get('consultantId') || '')
+    return send(res, 200, { code: 0, data: (state.consultantCertificates || []).filter(item => item.consultantId === consultantId).map(({ storagePath, ...item }) => item) })
+  }
+  if (route === '/api/consultant/profile/certificates' && req.method === 'POST') {
+    const actor = requireActor(req, ['consultant', 'admin']); const body = await readBody(req)
+    const fileName = String(body.fileName || '').trim(); const mimeType = String(body.mimeType || '').toLowerCase(); const sizeBytes = Number(body.sizeBytes || 0); const fileBase64 = String(body.fileBase64 || '')
+    if (!fileName || !['image/jpeg', 'image/png', 'application/pdf'].includes(mimeType) || !Number.isInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > 10 * 1024 * 1024 || !fileBase64) { const error = new Error('认证材料格式无效，仅支持 JPG、PNG、PDF 且不超过 10MB'); error.status = 400; throw error }
+    const consultantId = actor.role === 'consultant' ? actor.id : String(body.consultantId || '')
+    if (!consultantId) { const error = new Error('缺少健管师身份'); error.status = 400; throw error }
+    const raw = Buffer.from(fileBase64, 'base64'); if (raw.length !== sizeBytes) { const error = new Error('认证材料大小校验失败'); error.status = 400; throw error }
+    const certificateId = `cert-${randomUUID()}`; const directory = path.join(uploadRoot, 'consultants', consultantId); fs.mkdirSync(directory, { recursive: true })
+    const extension = mimeType === 'application/pdf' ? '.pdf' : mimeType === 'image/png' ? '.png' : '.jpg'; const storagePath = path.join('consultants', consultantId, `${certificateId}${extension}`)
+    fs.writeFileSync(path.join(uploadRoot, storagePath), raw)
+    const item = { id: certificateId, consultantId, fileName, mimeType, sizeBytes, storagePath, createdAt: new Date().toISOString() }; state.consultantCertificates ||= []; state.consultantCertificates.unshift(item); persist()
+    return send(res, 201, { code: 0, data: { ...item, storagePath: undefined } })
+  }
   const workflowRoutes = route === '/api/consultation-directory' || route.startsWith('/api/consultation-directory/') || route.startsWith('/api/consultations/') || route.startsWith('/api/consultation-requests') || route.startsWith('/api/conversations') || route.startsWith('/api/voice-sessions') || route.startsWith('/api/consultation-notifications') || route.startsWith('/api/consultant/')
   if (workflowRoutes) {
     const actor = actorFromRequest(req)
@@ -505,6 +523,9 @@ const server = http.createServer(async (req, res) => {
   }
   const payRoute = route.match(/^\/api\/orders\/([^/]+)\/mock-pay$/)
   if (payRoute && req.method === 'POST') {
+    if (isProduction || process.env.HEALTHAI_PAYMENT_PROVIDER !== 'mock') {
+      return send(res, 503, { code: 'PAYMENT_PROVIDER_NOT_CONFIGURED', message: '正式支付服务尚未配置，当前不能完成付款' })
+    }
     const actor = requireActor(req, ['customer']); const order = (state.orders?.[actor.id] || []).find(item => item.id === payRoute[1])
     if (!order) { const error = new Error('订单不存在'); error.status = 404; throw error }
     if (order.status === '已取消') { const error = new Error('订单已取消'); error.status = 409; throw error }

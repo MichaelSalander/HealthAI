@@ -4,6 +4,7 @@ import { getToken } from '@/utils/auth'
 export type ConsultantClient = { id: string; name: string; profile: Record<string, string>; observationCount: number; reportCount: number; lastActivityAt: string | null; status: string }
 export type ConsultantClientHealth = { profile: HealthProfile | null; reports: HealthReport[]; observations: Observation[]; timeline: HealthTimelineEvent[]; aiReport: AIHealthReport | null }
 export type ConsultantInsight = { id: string; userId: string; userName: string; title: string; body: string; summary: string; riskLevel: string; status: 'pending' | 'approved' | 'rejected'; reviewedAt: string | null; reviewedBy: string | null; generatedAt: string }
+export type ConsultantCertificate = { id: string; consultantId: string; fileName: string; mimeType: string; sizeBytes: number; createdAt: string }
 const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api/v1').replace(/\/$/, '')
 let session: DemoSession | undefined
 async function request<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
@@ -25,7 +26,9 @@ export const consultationAdminApi = {
   autoAssign: () => request<{ assignedCount: number }>('/consultations/auto-assign', 'POST', {}),
   assignRequest: (id: string, consultantId: string) => request<ConsultationRequestV2>(`/consultation-requests/${id}/assign`, 'POST', { consultantId }),
   autoAssignRequests: () => request<{ assignedCount: number }>('/consultation-requests/auto-assign', 'POST', {}),
-  save: (c: ConsultationConsultant) => request(`/consultation-directory/${c.id}`, 'PUT', c),
+  save: (c: ConsultationConsultant) => request<ConsultationConsultant>(`/consultation-directory/${c.id}`, 'PUT', c),
+  certificates: (consultantId?: string) => request<ConsultantCertificate[]>(`/consultant/profile/certificates${consultantId ? `?consultantId=${encodeURIComponent(consultantId)}` : ''}`),
+  uploadCertificate: (input: { consultantId?: string; fileName: string; mimeType: string; sizeBytes: number; fileBase64: string }) => request<ConsultantCertificate>('/consultant/profile/certificates', 'POST', input),
   read: (id: string) => request(`/consultation-notifications/${id}/read`, 'POST', {}),
   clientHealth: (userId: string) => request<ConsultantClientHealth>(`/consultant/clients/${encodeURIComponent(userId)}/health`),
   insights: () => request<ConsultantInsight[]>('/consultant/insights'),

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>HealthAI 一般会员实际页面流程</title>
+  <style>html,body{margin:0;background:#fffaf6;font-family:"Microsoft YaHei","Noto Sans SC",Arial,sans-serif}svg{display:block;margin:0 auto;background:#fffaf6}.title{font-size:34px;font-weight:800;fill:#2a201c}.subtitle{font-size:18px;fill:#8a6857}.section{font-size:22px;font-weight:800;fill:#9f5428}.node{fill:#fff;stroke:#e7c5ae;stroke-width:2}.node.important{fill:#fff0e5;stroke:#d96b2b}.node.test{fill:#f7fbfa;stroke:#9bc9c0}.label{font-size:20px;font-weight:700;fill:#3b302b}.small{font-size:16px;fill:#78665d}.arrow{stroke:#d96b2b;stroke-width:3;fill:none;marker-end:url(#arrow)}.branch{font-size:16px;font-weight:700;fill:#b35a27}.footer{font-size:16px;fill:#78665d}</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="2260" viewBox="0 0 1400 2260">
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d96b2b"/></marker></defs>
+  <text x="70" y="70" class="title">HealthAI 一般会员实际页面流程</text>
+  <text x="70" y="105" class="subtitle">Email／微信登录 → 健康资料 → 报告解析 → 匹配健管师 → 文字咨询</text>
+  <text x="70" y="160" class="section">一、登录与会员建档</text>
+  <rect x="70" y="190" width="360" height="100" rx="18" class="node important"/><text x="100" y="230" class="label">C-00 登录／注册</text><text x="100" y="260" class="small">/pages/login/index</text>
+  <rect x="520" y="190" width="360" height="100" rx="18" class="node"/><text x="550" y="230" class="label">Email 注册</text><text x="550" y="260" class="small">Email、密码、昵称（可选）</text>
+  <rect x="970" y="190" width="360" height="100" rx="18" class="node"/><text x="1000" y="230" class="label">微信登录</text><text x="1000" y="260" class="small">仅微信小程序授权</text>
+  <path d="M430 240 H520" class="arrow"/><path d="M880 240 H970" class="arrow"/>
+  <text x="465" y="225" class="branch">Email</text><text x="915" y="225" class="branch">小程序</text>
+  <rect x="520" y="350" width="810" height="100" rx="18" class="node test"/><text x="550" y="390" class="label">注册成功并建立空白会员档案</text><text x="550" y="420" class="small">没有默认张小美；个人资料、报告、指标、趋势均为空</text>
+  <path d="M700 290 V350" class="arrow"/><path d="M1150 290 V330 H925 V350" class="arrow"/>
+  <rect x="520" y="510" width="810" height="100" rx="18" class="node"/><text x="550" y="550" class="label">C-01 首页</text><text x="550" y="580" class="small">/pages/home/index · 可进入健康、报告、健管师与咨询</text>
+  <path d="M925 450 V510" class="arrow"/>
+  <text x="70" y="700" class="section">二、健康资料与报告解析</text>
+  <rect x="70" y="730" width="360" height="100" rx="18" class="node"/><text x="100" y="770" class="label">C-04 体检报告</text><text x="100" y="800" class="small">/pages/report/index</text>
+  <rect x="520" y="730" width="360" height="100" rx="18" class="node"/><text x="550" y="770" class="label">健康资料授权</text><text x="550" y="800" class="small">未授权时禁止上传</text>
+  <rect x="970" y="730" width="360" height="100" rx="18" class="node"/><text x="1000" y="770" class="label">选择报告类型</text><text x="1000" y="800" class="small">血液检测／一般体检</text>
+  <path d="M925 610 V670 H250 V730" class="arrow"/><path d="M430 780 H520" class="arrow"/><path d="M880 780 H970" class="arrow"/>
+  <rect x="70" y="890" width="360" height="100" rx="18" class="node important"/><text x="100" y="930" class="label">选择 PDF／PNG／JPG</text><text x="100" y="960" class="small">实际文件上传</text>
+  <rect x="520" y="890" width="360" height="100" rx="18" class="node important"/><text x="550" y="930" class="label">OCR 解析候选指标</text><text x="550" y="960" class="small">DeepSeek／正式 OCR Provider</text>
+  <rect x="970" y="890" width="360" height="100" rx="18" class="node important"/><text x="1000" y="930" class="label">用户确认并保存</text><text x="1000" y="960" class="small">写入 Observation 个人指标</text>
+  <path d="M250 830 V890" class="arrow"/><path d="M430 940 H520" class="arrow"/><path d="M880 940 H970" class="arrow"/>
+  <rect x="520" y="1050" width="810" height="100" rx="18" class="node test"/><text x="550" y="1090" class="label">C-05 健康结果 → C-13 历史趋势</text><text x="550" y="1120" class="small">/pages/result/index · /pages/trends/index · 客户只看基础结果与指标</text>
+  <path d="M1150 990 V1050" class="arrow"/>
+  <text x="70" y="1240" class="section">三、匹配健管师与文字咨询</text>
+  <rect x="70" y="1270" width="360" height="100" rx="18" class="node"/><text x="100" y="1310" class="label">C-06 找健康管理师</text><text x="100" y="1340" class="small">/pages/consultants/index</text>
+  <rect x="520" y="1270" width="360" height="100" rx="18" class="node"/><text x="550" y="1310" class="label">C-08 发起文字咨询</text><text x="550" y="1340" class="small">/pages/consultants/booking</text>
+  <rect x="970" y="1270" width="360" height="100" rx="18" class="node important"/><text x="1000" y="1310" class="label">平台匹配 C-101</text><text x="1000" y="1340" class="small">建立 ConsultationRequest</text>
+  <path d="M925 610 V1190 H250 V1270" class="arrow"/><path d="M430 1320 H520" class="arrow"/><path d="M880 1320 H970" class="arrow"/>
+  <rect x="70" y="1430" width="360" height="100" rx="18" class="node"/><text x="100" y="1470" class="label">咨询等待页</text><text x="100" y="1500" class="small">/pages/consultation/waiting · 轮询配对状态</text>
+  <rect x="520" y="1430" width="360" height="100" rx="18" class="node important"/><text x="550" y="1470" class="label">健管师收到通知</text><text x="550" y="1500" class="small">工作台／通知页接受咨询</text>
+  <rect x="970" y="1430" width="360" height="100" rx="18" class="node important"/><text x="1000" y="1470" class="label">建立咨询房间</text><text x="1000" y="1500" class="small">Conversation</text>
+  <path d="M1150 1370 V1400 H250 V1430" class="arrow"/><path d="M430 1480 H520" class="arrow"/><path d="M880 1480 H970" class="arrow"/>
+  <rect x="260" y="1620" width="880" height="150" rx="22" class="node important"/><text x="300" y="1670" class="label">C-12 会员咨询房间  ↔  健管师咨询房间</text><text x="300" y="1710" class="small">会员：/pages/consultation/index　健管师：/pages/consultant/room</text><text x="300" y="1740" class="small">消息写入后端；WebSocket 即时推送，HTTP 轮询作为备援</text>
+  <path d="M1150 1530 V1580 H700 V1620" class="arrow"/>
+  <rect x="260" y="1860" width="880" height="100" rx="18" class="node test"/><text x="300" y="1900" class="label">验收结果：会员消息可被健管师读取，未授权会员返回 403</text><text x="300" y="1930" class="small">API 整合测试 1/1 · 咨询业务测试 8/8</text>
+  <path d="M700 1770 V1860" class="arrow"/>
+  <text x="70" y="2050" class="footer">当前可用：Email 注册、报告资料、OCR 候选指标、基础健康结果、文字咨询。</text>
+  <text x="70" y="2085" class="footer">当前限制：微信登录需小程序；语音仍未接真实 Provider；线上双账号仍需人工最后验收。</text>
+</svg>
+</body>
+</html>

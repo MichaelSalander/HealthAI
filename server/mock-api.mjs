@@ -329,7 +329,7 @@ const server = http.createServer(async (req, res) => {
     const customers = [...customerIds].map(id => {
       const request = [...workflow.consultationRequests].reverse().find(item => item.userId === id); const booking = [...workflow.bookings].reverse().find(item => item.userId === id)
       const consultantId = request?.consultantId || booking?.consultantId; const consultant = workflow.consultants.find(item => item.id === consultantId)
-      return { id, name: request?.userName || booking?.userName || (id === 'u-001' ? '张小美' : id), role: 'customer', consultant: consultant?.name || '', status: request?.status === 'in_progress' || booking?.status === 'accepted' ? '服务中' : '正常', reportCount: (state.reports[id] || []).length, observationCount: (state.observations[id] || []).length, createdAt: state.profiles[id]?.updatedAt || null }
+      return { id, name: request?.userName || booking?.userName || state.profiles[id]?.name || id, role: 'customer', consultant: consultant?.name || '', status: request?.status === 'in_progress' || booking?.status === 'accepted' ? '服务中' : '正常', reportCount: (state.reports[id] || []).length, observationCount: (state.observations[id] || []).length, createdAt: state.profiles[id]?.updatedAt || null }
     })
     const consultants = workflow.consultants.map(item => ({ id: item.id, name: item.name, role: 'consultant', consultant: '', status: item.status === 'offline' ? '离线' : '已认证', reportCount: 0, observationCount: 0, createdAt: null }))
     return send(res, 200, { code: 0, data: [...customers, ...consultants] })

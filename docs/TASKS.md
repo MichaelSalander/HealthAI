@@ -130,6 +130,7 @@
 - [x] T473 生产 Provider 安全闸门：正式环境默认拒绝 Mock OCR／LLM，仅内部验收可显式设置 `HEALTHAI_ALLOW_MOCK_PROVIDERS=true`
 - [x] T474 个人页结构化健康数据：个人中心读取后端报告与 Observation，显示指标数量、报告数量、最近更新与最近指标；解析模型补充定性发现、分类、解释、建议与来源页码
 - [x] T475 本地空资料验收：增加可恢复的本地资料重置脚本，清除测试会员／报告／聊天资料后验证建档、手动指标、Mock 报告解析、Admin 派单与客户／健管师文字聊天
+- [x] T476 正式 UI 与聊天文案收口：同源部署优先读取后端内容与健管师资料，移除客户可见的 Mock 语音文案，明确文字聊天为当前可用通道
 - [ ] T501 真实微信、支付、IM、OCR、LLM Provider
 - [x] T501a OpenAI Responses OCR Provider：PDF 上传、结构化候选指标、用户确认前置、临时文件清理；生产环境通过 `OCR_PROVIDER=openai` 启用
 - [x] T501c DeepSeek PDF OCR Provider：提取文字型 PDF 的文字层并调用 DeepSeek 结构化候选指标；生产环境通过 `OCR_PROVIDER=deepseek` 启用

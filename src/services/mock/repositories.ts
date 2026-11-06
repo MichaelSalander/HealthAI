@@ -12,7 +12,7 @@ const apiBase = (() => {
   if (configured) return configured.replace(/\/$/, '')
   return hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' ? '/api' : 'http://127.0.0.1:8787/api'
 })()
-const hasConfiguredApi = Boolean((import.meta as any).env?.VITE_API_BASE_URL)
+const hasConfiguredApi = Boolean((import.meta as any).env?.VITE_API_BASE_URL) || (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname))
 
 function readStorage<T>(key: StorageKey, fallback: T): T {
   try {

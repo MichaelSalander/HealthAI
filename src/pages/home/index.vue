@@ -4,12 +4,14 @@ import { useHealthStore } from '../../stores/health'
 import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
-import { contentRepository } from '../../services/api/repositories'
+import { consultantRepository, contentRepository } from '../../services/api/repositories'
 import type { HomeEntry } from '../../services/api/contracts'
+import type { Consultant } from '../../types/domain'
 
 const store = useHealthStore()
 const entries = ref<HomeEntry[]>([])
-onMounted(async () => { store.ensureUser(); entries.value = await contentRepository.listHomeEntries() })
+const consultants = ref<Consultant[]>([])
+onMounted(async () => { store.ensureUser(); [entries.value, consultants.value] = await Promise.all([contentRepository.listHomeEntries(), consultantRepository.list()]) })
 const go = (url: string) => uni.navigateTo({ url })
 </script>
 
@@ -19,7 +21,8 @@ const go = (url: string) => uni.navigateTo({ url })
     <view class="section-title home-section-title">健康数据入口</view><text class="subtitle">上传报告或手动记录，生成个人健康档案</text>
     <view class="entry-list"><AppCard v-for="(entry, index) in entries" :key="entry.id" class="entry-card" @click="go(entry.route)"><view :class="['entry-icon', ['mint','sky','blue','pink'][index % 4]]">{{ ['▤','＋','⌑','♙'][index % 4] }}</view><view class="entry-copy"><text class="entry-title">{{ entry.title }}</text><text class="entry-subtitle">{{ entry.subtitle }}</text></view><text class="entry-arrow">›</text></AppCard></view>
     <view class="section-title home-section-title">我的主责健康管理师</view>
-    <AppCard class="consultant-card"><view class="consultant-row"><view class="avatar">李</view><view class="grow"><text class="consultant-name">李晓雯</text><text class="subtitle">高级健康管理师｜慢病管理</text><text class="rating">★ 4.9　523条评价</text></view><text class="online">在线</text></view><PrimaryButton label="立即咨询" @tap="go('/pages/service/index')" /></AppCard>
+    <AppCard v-if="consultants[0]" class="consultant-card"><view class="consultant-row"><view class="avatar">{{ consultants[0].name.slice(0, 1) }}</view><view class="grow"><text class="consultant-name">{{ consultants[0].name }}</text><text class="subtitle">{{ consultants[0].level }}健康管理师｜{{ consultants[0].categories?.[0] || '健康管理' }}</text><text class="rating">★ {{ consultants[0].rating }}　{{ consultants[0].clients }}位服务客户</text></view><text class="online">在线</text></view><PrimaryButton label="立即咨询" @tap="go('/pages/service/index')" /></AppCard>
+    <AppCard v-else class="consultant-card empty-consultant"><text class="consultant-name">主责健康管理师正在安排中</text><text class="subtitle">平台配对后会在这里显示</text></AppCard>
     <BottomNav active="home" />
   </view>
 </template>

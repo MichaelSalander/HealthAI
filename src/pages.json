@@ -30,6 +30,7 @@
     ,{ "path": "pages/services/addons", "style": { "navigationBarTitleText": "增值服务" } }
     ,{ "path": "pages/order/confirm", "style": { "navigationBarTitleText": "订单确认" } }
     ,{ "path": "pages/consultation/index", "style": { "navigationBarTitleText": "一对一健康咨询" } }
+    ,{ "path": "pages/consultation/success", "style": { "navigationBarTitleText": "咨询配对成功" } }
     ,{ "path": "pages/consultation/waiting", "style": { "navigationBarTitleText": "等待配对" } }
     ,{ "path": "pages/consultant/room", "style": { "navigationBarTitleText": "一对一健康咨询" } }
     ,{ "path": "pages/trends/index", "style": { "navigationBarTitleText": "历史趋势" } }

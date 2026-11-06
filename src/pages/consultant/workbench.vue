@@ -43,7 +43,7 @@ async function act(fn: () => Promise<unknown>) { if (saving.value) return; savin
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 onShow(() => { load(); stop(); timer = setInterval(load, 5000) }); onHide(stop); onUnload(stop)
 async function switchConsultant(id: string) { session.value = await api.login('consultant', id); noticesLoaded = false; await load() }
-async function acceptRequest(item: ConsultationRequestV2) { if (!session.value) return; await act(async () => { const result = await api.acceptRequest(item.id, session.value!); uni.navigateTo({ url: `/pages/consultant/room?conversationId=${result.room.id}&consultantId=${session.value!.id}` }) }) }
+async function acceptRequest(item: ConsultationRequestV2) { if (!session.value) return; await act(async () => { const result = await api.acceptRequest(item.id, session.value!); uni.navigateTo({ url: `/pages/consultation/success?conversationId=${result.room.id}&consultantName=${encodeURIComponent(result.room.consultantName)}` }) }) }
 </script>
 
 <template>

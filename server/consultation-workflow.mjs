@@ -9,11 +9,12 @@ const people = [
 ]
 export function seedWorkflow() {
   const start = new Date(); start.setUTCHours(0, 0, 0, 0); start.setUTCDate(start.getUTCDate() + 1)
-  return { consultants: people.map(p => ({ ...p, dailyLimit: 8, slots: [2, 3, 6, 7].map(hour => ({ id: randomUUID(), startAt: new Date(+start + hour * 3600000).toISOString(), capacity: 1 })) })), bookings: [], consultationRequests: [], conversations: [], messages: [], voiceSessions: [], serviceRecords: [], notifications: [], presence: {}, audit: [] }
+  return { consultants: people.map(p => ({ ...p, dailyLimit: 8, maxActiveClients: 3, acceptingNewClients: p.status === 'available', slots: [2, 3, 6, 7].map(hour => ({ id: randomUUID(), startAt: new Date(+start + hour * 3600000).toISOString(), capacity: 1 })) })), bookings: [], consultationRequests: [], conversations: [], messages: [], voiceSessions: [], serviceRecords: [], notifications: [], presence: {}, audit: [] }
 }
 export function handleWorkflow({ state, route, method, body, actor, query, now = Date.now(), onMessage }) {
   const db = state.workflow ||= seedWorkflow()
   db.consultationRequests ||= []; db.conversations ||= []; db.messages ||= []; db.voiceSessions ||= []; db.serviceRecords ||= []
+  db.consultants.forEach(consultant => { consultant.maxActiveClients ??= 3; consultant.acceptingNewClients ??= consultant.status === 'available' })
   const stamp = () => new Date(now).toISOString()
   const requireRole = (...roles) => { if (!actor) fail('请先登录', 401); if (!roles.includes(actor.role)) fail('无权执行此操作', 403) }
   const notify = (role, recipientId, title, bookingId) => db.notifications.unshift({ id: randomUUID(), role, recipientId, title, bookingId, read: false, createdAt: stamp() })
@@ -27,7 +28,9 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     const day = slot.startAt.slice(0, 10)
     return occupied(c.id, slotId) < slot.capacity && db.bookings.filter(b => active(b) && b.consultantId === c.id && b.slotStartAt?.slice(0, 10) === day).length < c.dailyLimit
   }
-  const project = c => ({ ...c, slots: c.slots.map(s => ({ ...s, remaining: Math.max(0, s.capacity - occupied(c.id, s.id)) })), bookedCount: db.bookings.filter(b => active(b) && b.consultantId === c.id).length })
+  const activeClientCount = consultantId => new Set(db.conversations.filter(room => room.consultantId === consultantId && room.status !== 'completed').map(room => room.userId)).size
+  const canAcceptNewClient = c => c.status === 'available' && c.acceptingNewClients !== false && activeClientCount(c.id) < c.maxActiveClients
+  const project = c => ({ ...c, activeClientCount: activeClientCount(c.id), slots: c.slots.map(s => ({ ...s, remaining: Math.max(0, s.capacity - occupied(c.id, s.id)) })), bookedCount: db.bookings.filter(b => active(b) && b.consultantId === c.id).length })
   const requestVisible = r => actor.role === 'admin' || r.userId === actor.id || r.consultantId === actor.id
   const roomVisible = room => actor.role === 'admin' || room.userId === actor.id || room.consultantId === actor.id
   const requestById = id => db.consultationRequests.find(r => r.id === id)
@@ -88,7 +91,7 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     if (!['immediate_text', 'immediate_voice', 'scheduled'].includes(body.mode)) fail('咨询方式无效', 400)
     const existing = db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
     if (existing) return existing
-    const assigned = db.consultants.find(person => person.id === 'c-101' && person.status === 'available' && person.freeConsultEnabled)
+    const assigned = db.consultants.find(person => person.id === 'c-101' && person.freeConsultEnabled && canAcceptNewClient(person))
     const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: 'c-101', consultantId: assigned?.id, consultantName: assigned?.name, status: assigned ? 'assigned' : 'queued', createdAt: stamp(), assignedAt: assigned ? stamp() : undefined }
     db.consultationRequests.unshift(item); audit('consultation.requested', item.id)
     if (assigned) notifyResource('consultant', assigned.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id)
@@ -105,14 +108,14 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   const requestAssign = route.match(/^\/api\/consultation-requests\/([^/]+)\/assign$/)
   if (requestAssign && method === 'POST') {
     requireRole('admin'); const item = requestById(requestAssign[1]); if (!item) fail('咨询请求不存在', 404); if (!['queued', 'reassigned'].includes(item.status)) fail('该请求当前不可派单')
-    const c = db.consultants.find(person => person.id === body.consultantId); if (!c || c.status !== 'available' || !c.freeConsultEnabled) fail('目标健管师当前不可接单')
+    const c = db.consultants.find(person => person.id === body.consultantId); if (!c || !c.freeConsultEnabled || !canAcceptNewClient(c)) fail('目标健管师当前已达到承接上限或暂不接新客户')
     Object.assign(item, { consultantId: c.id, consultantName: c.name, status: 'assigned', assignedAt: stamp() }); audit('consultation.assigned', item.id)
     notifyResource('consultant', c.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${c.name}，等待健管师确认`, 'consultation_request', item.id); return item
   }
   if (route === '/api/consultation-requests/auto-assign' && method === 'POST') {
     requireRole('admin'); let assignedCount = 0
     for (const item of db.consultationRequests.filter(item => ['queued', 'reassigned'].includes(item.status))) {
-      const candidates = db.consultants.filter(c => c.status === 'available' && c.freeConsultEnabled).sort((a, b) => project(a).bookedCount - project(b).bookedCount)
+      const candidates = db.consultants.filter(c => c.freeConsultEnabled && canAcceptNewClient(c)).sort((a, b) => project(a).activeClientCount - project(b).activeClientCount)
       const selected = candidates[0]; if (!selected) continue
       Object.assign(item, { consultantId: selected.id, consultantName: selected.name, status: 'assigned', assignedAt: stamp() }); audit('consultation.auto_assigned', item.id); notifyResource('consultant', selected.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${selected.name}，等待健管师确认`, 'consultation_request', item.id); assignedCount++
     }
@@ -191,7 +194,7 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     const categories = Array.isArray(body.categories) ? body.categories.map(value => String(value).trim()).filter(Boolean).slice(0, 9) : c.categories
     const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : c.phone || ''
     const intro = typeof body.intro === 'string' ? body.intro.trim().slice(0, 500) : c.intro || ''
-    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), slots, categories, phone, intro }); audit('availability.updated', c.id); return project(c)
+    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), acceptingNewClients: body.status === 'available', slots, categories, phone, intro }); audit('availability.updated', c.id); return project(c)
   }
   const assign = route.match(/^\/api\/consultations\/bookings\/([^/]+)\/assign$/)
   const assignOne = (b, c) => {
@@ -203,7 +206,7 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   if (assign && method === 'POST') {
     requireRole('admin'); const b = db.bookings.find(b => b.id === assign[1]); if (!b) fail('预约不存在', 404)
     if (b.status !== 'pending_assignment') fail('该预约已派单，请勿重复操作')
-    const c = db.consultants.find(c => c.id === body.consultantId); if (!c) fail('健管师不存在', 404)
+    const c = db.consultants.find(c => c.id === body.consultantId); if (!c || !canAcceptNewClient(c)) fail('目标健管师当前已达到承接上限或暂不接新客户')
     // Temporarily release this booking's reservation; the synchronous operation cannot interleave.
     b.status = 'assigning'
     try { assignOne(b, c) } catch (e) { b.status = 'pending_assignment'; throw e }

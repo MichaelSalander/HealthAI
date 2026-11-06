@@ -6,7 +6,7 @@ import { consultationRepository as api } from '../../services/api/consultation'
 import type { ConsultationRequestV2 } from '../../types/consultation'
 import { uniApi as uni } from '../../services/platform/uni'
 const requestId = ref(''); const item = ref<ConsultationRequestV2>(); const error = ref(''); let timer: ReturnType<typeof setInterval> | undefined
-async function load() { try { const items = await api.consultationRequests(); item.value = items.find(entry => entry.id === requestId.value) || items[0]; if (item.value?.conversationId) uni.redirectTo({ url: `/pages/consultation/index?conversationId=${item.value.conversationId}` }); error.value = '' } catch (e) { error.value = (e as Error).message } }
+async function load() { try { const items = await api.consultationRequests(); item.value = items.find(entry => entry.id === requestId.value) || items[0]; if (item.value?.conversationId) uni.redirectTo({ url: `/pages/consultation/success?conversationId=${item.value.conversationId}&consultantName=${encodeURIComponent(item.value.consultantName || '健管师')}` }); error.value = '' } catch (e) { error.value = (e as Error).message } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 onLoad(options => { requestId.value = options?.requestId || '' }); onShow(() => { load(); stop(); timer = setInterval(load, 4000) }); onHide(stop); onUnload(stop)
 </script>

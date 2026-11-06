@@ -24,7 +24,7 @@ async function load() {
   } catch (e) { error.value = (e as Error).message } finally { loading.value = false }
 }
 async function read(id: string) { try { if (session.value) await api.readNotice(id, session.value); await load() } catch (e) { error.value = (e as Error).message } }
-async function open(item: ConsultationNotice) { if (!item.read) await read(item.id); if (item.resourceType === 'conversation' && item.resourceId) uni.navigateTo({ url: `/pages/consultation/index?conversationId=${item.resourceId}` }); else if (item.resourceType === 'consultation_request') uni.navigateTo({ url: '/pages/consultation/waiting' }) }
+async function open(item: ConsultationNotice) { if (!item.read) await read(item.id); if (item.resourceType === 'conversation' && item.resourceId) uni.navigateTo({ url: `/pages/consultant/room?conversationId=${item.resourceId}&consultantId=${session.value?.id || ''}` }); else if (item.resourceType === 'consultation_request') uni.reLaunch({ url: '/pages/consultant/workbench' }) }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 onShow(() => { load(); stop(); timer = setInterval(load, 5000) })
 onHide(stop)

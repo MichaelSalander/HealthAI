@@ -14,7 +14,8 @@ const consultantSessionKey = 'healthai_consultant_session'
 function readCustomerSession(): DemoSession | undefined {
   try {
     const value = uni.getStorageSync(customerSessionKey)
-    return value ? JSON.parse(String(value)) as DemoSession : undefined
+    const session = value ? JSON.parse(String(value)) as DemoSession : undefined
+    return session?.role === 'customer' && session.token ? session : undefined
   } catch { return undefined }
 }
 function persistCustomerSession(session: DemoSession): DemoSession {
@@ -27,12 +28,16 @@ function clearCustomerSession(): void {
   try { uni.setStorageSync(customerSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
 }
 function readConsultantSession(): DemoSession | undefined {
-  try { const value = uni.getStorageSync(consultantSessionKey); return value ? JSON.parse(String(value)) as DemoSession : undefined } catch { return undefined }
+  try { const value = uni.getStorageSync(consultantSessionKey); const session = value ? JSON.parse(String(value)) as DemoSession : undefined; return session?.role === 'consultant' && session.token ? session : undefined } catch { return undefined }
 }
 function persistConsultantSession(session: DemoSession): DemoSession {
   consultantSession = session
   try { uni.setStorageSync(consultantSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
   return session
+}
+function clearConsultantSession(): void {
+  consultantSession = undefined
+  try { uni.setStorageSync(consultantSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
 }
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession, timeout = 10000): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -53,18 +58,26 @@ export const consultationRepository = {
     if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat' && role === 'customer') return this.loginWithWechat(role)
     if (role === 'customer') {
       const saved = customerSession || readCustomerSession()
-      if (saved) { customerSession = saved; return Promise.resolve(saved) }
+      if (saved && saved.role === 'customer') { customerSession = saved; return Promise.resolve(saved) }
+      clearCustomerSession()
       if (!isDemoMode) return Promise.reject(new Error('请先登录或注册会员账号'))
     }
     if (role === 'consultant') {
       const saved = consultantSession || readConsultantSession()
-      if (saved) { consultantSession = saved; return Promise.resolve(saved) }
+      if (saved && saved.role === 'consultant' && (!id || saved.id === id)) { consultantSession = saved; return Promise.resolve(saved) }
+      clearConsultantSession()
       if (!isDemoMode) return Promise.reject(new Error('请先登录健管师账号'))
     }
-    return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => role === 'customer' ? persistCustomerSession(session) : session)
+    return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => {
+      if (session.role !== role) throw new Error('登录角色不匹配，请重新登录')
+      return role === 'customer' ? persistCustomerSession(session) : persistConsultantSession(session)
+    })
   },
   operatorLogin(username: string, password: string) {
-    return request<DemoSession>('/auth/operator-login', 'POST', { role: 'consultant', username, password }).then(persistConsultantSession)
+    return request<DemoSession>('/auth/operator-login', 'POST', { role: 'consultant', username, password }).then(session => {
+      if (session.role !== 'consultant') throw new Error('健管师账号角色不正确')
+      return persistConsultantSession(session)
+    })
   },
   customerPasswordLogin(username: string, password: string) {
     return request<DemoSession>('/auth/customer-login', 'POST', { username, password }).then(persistCustomerSession)
@@ -87,6 +100,7 @@ export const consultationRepository = {
     return persistCustomerSession(await this.login('customer', id))
   },
   logoutCustomer() { clearCustomerSession() },
+  logoutConsultant() { clearConsultantSession() },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   healthCenters() { return request<HealthCheckCenter[]>('/health-centers') },
   async eligibility() { return request<{ hasBloodTest: boolean; healthCenterRoute: string }>('/consultations/eligibility', 'GET', undefined, await this.customer()) },

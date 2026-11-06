@@ -3,13 +3,13 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import AppCard from './AppCard.vue'
 import { consultationRepository as api } from '../services/api/consultation'
-import type { ConsultationMessage, ConsultationRoom as Room, DemoSession, VoiceSession } from '../types/consultation'
+import type { ConsultationMessage, ConsultationRoom as Room, DemoSession } from '../types/consultation'
 import type { Observation } from '../types/domain'
 import { uniApi as uni } from '../services/platform/uni'
 
 const props = defineProps<{ roomId: string; session: DemoSession }>()
 const emit = defineEmits<{ (event: 'back'): void; (event: 'completed'): void }>()
-const room = ref<Room>(); const messages = ref<ConsultationMessage[]>([]); const draft = ref(''); const error = ref(''); const loading = ref(true); const sending = ref(false); const voice = ref<VoiceSession>(); const showHealth = ref(false); const healthObservations = ref<Observation[]>([])
+const room = ref<Room>(); const messages = ref<ConsultationMessage[]>([]); const draft = ref(''); const error = ref(''); const loading = ref(true); const sending = ref(false); const showHealth = ref(false); const healthObservations = ref<Observation[]>([])
 let timer: ReturnType<typeof setInterval> | undefined
 let socket: WebSocket | undefined
 const otherPerson = computed(() => room.value?.participants.find(item => item.userId !== props.session.id))
@@ -23,9 +23,8 @@ const roomBannerTitle = computed(() => isConsultant.value ? '客户咨询' : '�
 const roomBannerSubtitle = computed(() => isConsultant.value ? '查看客户资料并跟进服务' : '健康管理服务')
 const healthDrawerTitle = computed(() => isConsultant.value ? '客户健康摘要' : '我的健康摘要')
 
-async function load() { try { const [roomData, result, voiceData] = await Promise.all([api.room(props.roomId, props.session), api.messages(props.roomId, props.session), api.voiceSessions(props.roomId, props.session)]); room.value = roomData; messages.value = result.items; voice.value = voiceData || undefined; if (isConsultant.value) { const health = await api.clientHealth(roomData.userId, props.session); healthObservations.value = health.observations } if (messages.value.length) await api.readRoom(props.roomId, messages.value[messages.value.length - 1].id, props.session); error.value = '' } catch (e) { error.value = /无权|权限|不存在/.test((e as Error).message) ? '该咨询房间已结束、失效，或当前账号没有查看权限。请从咨询列表进入有效的咨询。' : (e as Error).message } finally { loading.value = false } }
+async function load() { try { const [roomData, result] = await Promise.all([api.room(props.roomId, props.session), api.messages(props.roomId, props.session)]); room.value = roomData; messages.value = result.items; if (isConsultant.value) { const health = await api.clientHealth(roomData.userId, props.session); healthObservations.value = health.observations } if (messages.value.length) await api.readRoom(props.roomId, messages.value[messages.value.length - 1].id, props.session); error.value = '' } catch (e) { error.value = /无权|权限|不存在/.test((e as Error).message) ? '该咨询房间已结束、失效，或当前账号没有查看权限。请从咨询列表进入有效的咨询。' : (e as Error).message } finally { loading.value = false } }
 async function send() { const text = draft.value.trim(); if (!text || sending.value || room.value?.status === 'completed') return; sending.value = true; try { await api.sendMessage(props.roomId, text, props.session); draft.value = ''; await load() } catch (e) { error.value = (e as Error).message } finally { sending.value = false } }
-async function startOrAcceptVoice() { uni.showModal({ title: '语音咨询', content: '语音功能暂未开启，请先使用文字消息沟通。', showCancel: false }) }
 async function complete() { if (!isConsultant.value || !room.value) return; try { await api.completeRoom(room.value.id, '本次咨询已完成，建议继续记录健康数据并按计划复查。', props.session); await load(); emit('completed') } catch (e) { error.value = (e as Error).message } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 function connectRealtime() {
@@ -43,7 +42,7 @@ function connectRealtime() {
   socket.onclose = () => { socket = undefined }
 }
 function start() { stop(); connectRealtime(); timer = setInterval(load, 5000) }
-function showRoomMenu() { uni.showModal({ title: '咨询信息', content: '本次咨询可查看健康摘要并发送消息。语音功能暂未开放。', showCancel: false }) }
+function showRoomMenu() { uni.showModal({ title: '咨询信息', content: '本次咨询可查看健康摘要并发送消息。', showCancel: false }) }
 onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined); load(); start() }); onHide(() => { stop(); socket?.close(); socket = undefined }); onUnload(() => { stop(); socket?.close(); socket = undefined }); onBeforeUnmount(() => { stop(); socket?.close(); socket = undefined })
 </script>
 

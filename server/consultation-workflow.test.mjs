@@ -65,3 +65,18 @@ test('consultants cannot self-configure slots or capacity', () => {
   assert.throws(() => f.call(`consultation-directory/${consultant.id}`, 'PUT', { ...current, status: 'full' }, consultant), error => error.status === 403)
   assert.throws(() => f.call(`consultation-directory/${consultant.id}`, 'PUT', { ...current, slots: current.slots.slice(0, 1) }, consultant), error => error.status === 403)
 })
+
+test('long term rooms count toward capacity while existing rooms remain active', () => {
+  const f = fixture(); const consultant = { id: f.c.id, role: 'consultant', name: f.c.name }
+  for (let i = 1; i <= f.c.maxActiveClients; i += 1) {
+    const customer = { id: `customer-${i}`, role: 'customer', name: `测试客户${i}` }
+    const request = f.call('consultation-requests', 'POST', { requestId: `long-${i}`, mode: 'immediate_text' }, customer)
+    assert.equal(request.status, 'assigned')
+    const accepted = f.call(`consultation-requests/${request.id}/accept`, 'POST', {}, consultant)
+    assert.equal(accepted.room.status, 'in_progress')
+  }
+  assert.equal(f.call('consultation-directory').find(item => item.id === f.c.id).activeClientCount, f.c.maxActiveClients)
+  const queued = f.call('consultation-requests', 'POST', { requestId: 'long-over-cap', mode: 'immediate_text' }, { id: 'customer-over-cap', role: 'customer', name: '超出上限客户' })
+  assert.equal(queued.status, 'queued')
+  assert.equal(f.state.workflow.conversations.every(room => room.status === 'in_progress'), true)
+})

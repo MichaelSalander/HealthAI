@@ -32,6 +32,10 @@ pnpm run build:mp-weixin:production
 
 C 端正式构建前复制 `.env.production.example` 为 `.env.production`，把 `VITE_API_BASE_URL` 换成正式 API 域名，并保持 `VITE_AUTH_MODE=wechat`；否则构建产物会继续使用本地演示登录逻辑。
 
+### 会员端与健管师端入口
+
+会员端与健管师端共用同一套 API 和数据库，但不共用登录入口。建议配置两个子网域：`app.example.com`（会员端）与 `consultant.example.com`（健管师端），分别使用 `VITE_PORTAL_ROLE=customer` 与 `VITE_PORTAL_ROLE=consultant` 构建。若使用同一份前端产物，运行时也会识别 `app.`、`member.`、`consultant.`、`coach.` 子网域，并将未登录访问导向对应的登录页；Cloudways 临时域名不具备角色分流能力，仍适合内部验收，不适合作为正式双入口。
+
 ## 2. 生产环境变量
 
 不要把真实密钥提交到 Git。Cloudways 环境变量至少需要：

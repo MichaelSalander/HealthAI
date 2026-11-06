@@ -142,4 +142,4 @@
 `npm run typecheck`、`npm run build:h5`；运行后手动点击核心路径并确认无页面跳转错误。
 
 ## 当前验证结果
-`pnpm run typecheck`、`pnpm --dir console run typecheck`、H5/Admin production build、`pnpm run build:mp-weixin:test`、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、环境检查与 production API 启动冒烟已通过。GitHub Actions 已推送部署流程，但正式发布仍需要设置 `HEALTHAI_API_BASE_URL` Secret 并提供 Cloudways API 服务；最近一次 Actions 失败已确认是该 Secret 为空。
+主 App `pnpm run typecheck`、H5 production build、`pnpm test:consultation`（8/8）、`pnpm test:api`（HTTP 全链路）、`pnpm test:production`（3/3）、环境检查与 production API 启动冒烟已通过。Admin `pnpm --dir console run typecheck` 在本机持续无输出，需单独排查或在 CI 环境完成确认；不能把它标记为已通过。Cloudways commit `62874459` 已部署成功。正式安全模式仍需在 Cloudways 设置 `NODE_ENV=production`、Session Secret、CORS 白名单及正式运营账号；目前环境页仍显示 `NODE_ENV=development`。

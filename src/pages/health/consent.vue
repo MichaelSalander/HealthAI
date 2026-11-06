@@ -20,6 +20,7 @@ const save = async (status: 'granted' | 'revoked') => {
       await consultationRepository.saveConsent('health_data', 'v1', 'revoked')
     }
     await load(); message.value = status === 'granted' ? '授权已保存' : '已撤回授权'
+    if (status === 'granted') setTimeout(() => uniApi.navigateBack(), 350)
   } catch (error) { message.value = (error as Error).message } finally { saving.value = false }
 }
 onMounted(load)

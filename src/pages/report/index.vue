@@ -29,7 +29,8 @@ const readBrowserFile = (file: File) => new Promise<string>((resolve, reject) =>
 const chooseFile = () => {
   if (!consentGranted.value) { uni.showToast({ title: '请先完成健康资料授权' }); return uni.navigateTo({ url: '/pages/health/consent' }) }
   if (typeof document !== 'undefined') {
-    const input = document.createElement('input')
+    const nativeDocument = typeof window !== 'undefined' ? window.document : document
+    const input = nativeDocument.createElement('input')
     input.type = 'file'
     input.accept = '.pdf,.jpg,.jpeg,.png,image/*,application/pdf'
     input.style.position = 'fixed'
@@ -38,7 +39,7 @@ const chooseFile = () => {
       void onFileChange(event)
       input.remove()
     }
-    document.body.appendChild(input)
+    nativeDocument.body.appendChild(input)
     input.click()
     return
   }

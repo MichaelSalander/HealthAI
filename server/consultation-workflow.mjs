@@ -11,7 +11,7 @@ export function seedWorkflow() {
   const start = new Date(); start.setUTCHours(0, 0, 0, 0); start.setUTCDate(start.getUTCDate() + 1)
   return { consultants: people.map(p => ({ ...p, dailyLimit: 8, slots: [2, 3, 6, 7].map(hour => ({ id: randomUUID(), startAt: new Date(+start + hour * 3600000).toISOString(), capacity: 1 })) })), bookings: [], consultationRequests: [], conversations: [], messages: [], voiceSessions: [], serviceRecords: [], notifications: [], presence: {}, audit: [] }
 }
-export function handleWorkflow({ state, route, method, body, actor, query, now = Date.now() }) {
+export function handleWorkflow({ state, route, method, body, actor, query, now = Date.now(), onMessage }) {
   const db = state.workflow ||= seedWorkflow()
   db.consultationRequests ||= []; db.conversations ||= []; db.messages ||= []; db.voiceSessions ||= []; db.serviceRecords ||= []
   const stamp = () => new Date(now).toISOString()
@@ -128,7 +128,7 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   if (messageRoute && method === 'POST') {
     requireRole('customer', 'consultant'); const room = roomById(messageRoute[1]); if (!room || !roomVisible(room)) fail('无权发送消息', 403); if (room.status === 'completed') fail('咨询已结束'); if (!body.content?.trim()) fail('消息不能为空', 400)
     const duplicate = db.messages.find(message => message.conversationId === room.id && message.clientMessageId === body.clientMessageId); if (duplicate) return duplicate
-    const message = { id: randomUUID(), conversationId: room.id, senderId: actor.id, senderRole: actor.role, senderName: actor.name, type: body.type || 'text', content: String(body.content).trim(), clientMessageId: body.clientMessageId, status: 'delivered', sentAt: stamp() }; db.messages.push(message); room.lastMessageAt = stamp(); const recipientId = actor.role === 'customer' ? room.consultantId : room.userId; const recipientRole = actor.role === 'customer' ? 'consultant' : 'customer'; notifyResource(recipientRole, recipientId, `${actor.name} 发来一条新消息`, 'conversation', room.id); return message
+    const message = { id: randomUUID(), conversationId: room.id, senderId: actor.id, senderRole: actor.role, senderName: actor.name, type: body.type || 'text', content: String(body.content).trim(), clientMessageId: body.clientMessageId, status: 'delivered', sentAt: stamp() }; db.messages.push(message); room.lastMessageAt = stamp(); const recipientId = actor.role === 'customer' ? room.consultantId : room.userId; const recipientRole = actor.role === 'customer' ? 'consultant' : 'customer'; notifyResource(recipientRole, recipientId, `${actor.name} 发来一条新消息`, 'conversation', room.id); onMessage?.(message); return message
   }
   const roomAction = route.match(/^\/api\/conversations\/([^/]+)\/(join|leave|read|complete)$/)
   if (roomAction && method === 'POST') {

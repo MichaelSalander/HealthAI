@@ -10,6 +10,7 @@ const props = defineProps<{ roomId: string; session: DemoSession }>()
 const emit = defineEmits<{ (event: 'back'): void; (event: 'completed'): void }>()
 const room = ref<Room>(); const messages = ref<ConsultationMessage[]>([]); const draft = ref(''); const error = ref(''); const loading = ref(true); const sending = ref(false); const voice = ref<VoiceSession>(); const showHealth = ref(false)
 let timer: ReturnType<typeof setInterval> | undefined
+let socket: WebSocket | undefined
 const otherPerson = computed(() => room.value?.participants.find(item => item.userId !== props.session.id))
 const isConsultant = computed(() => props.session.role === 'consultant')
 const statusText = computed(() => room.value?.status === 'completed' ? '已结束' : voice.value?.status === 'connected' ? '语音通话中' : otherPerson.value?.online ? '在线' : '暂时离线')
@@ -19,9 +20,23 @@ async function send() { const text = draft.value.trim(); if (!text || sending.va
 async function startOrAcceptVoice() { uni.showModal({ title: '语音咨询', content: '语音功能暂未开启，请先使用文字消息沟通。', showCancel: false }) }
 async function complete() { if (!isConsultant.value || !room.value) return; try { await api.completeRoom(room.value.id, '本次咨询已完成，建议继续记录健康数据并按计划复查。', props.session); await load(); emit('completed') } catch (e) { error.value = (e as Error).message } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
-function start() { stop(); timer = setInterval(load, 3000) }
+function connectRealtime() {
+  if (typeof WebSocket === 'undefined' || typeof location === 'undefined') return
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  socket?.close()
+  socket = new WebSocket(`${protocol}//${location.host}/ws/conversations/${encodeURIComponent(props.roomId)}?token=${encodeURIComponent(props.session.token)}`)
+  socket.onmessage = event => {
+    try {
+      const payload = JSON.parse(String(event.data))
+      if (payload.type === 'message.created' && payload.data?.conversationId === props.roomId) load()
+    } catch { /* Ignore malformed realtime frames and keep HTTP fallback alive. */ }
+  }
+  socket.onerror = () => { socket?.close(); socket = undefined }
+  socket.onclose = () => { socket = undefined }
+}
+function start() { stop(); connectRealtime(); timer = setInterval(load, 5000) }
 function showRoomMenu() { uni.showModal({ title: '咨询房间', content: '请使用健康摘要、语音咨询和结束咨询完成本次服务。', showCancel: false }) }
-onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined); load(); start() }); onHide(stop); onUnload(stop); onBeforeUnmount(stop)
+onShow(() => { api.joinRoom(props.roomId, props.session).catch(() => undefined); load(); start() }); onHide(() => { stop(); socket?.close(); socket = undefined }); onUnload(() => { stop(); socket?.close(); socket = undefined }); onBeforeUnmount(() => { stop(); socket?.close(); socket = undefined })
 </script>
 
 <template>

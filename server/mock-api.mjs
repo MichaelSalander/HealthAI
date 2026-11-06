@@ -10,6 +10,7 @@ import { openPostgresStore } from './storage/postgres-store.mjs'
 import { exchangeMiniProgramCode, stableWechatUserId } from './wechat-auth.mjs'
 import { createAiProvider } from './providers/ai-provider.mjs'
 import { createOcrProvider } from './providers/ocr-provider.mjs'
+import { WebSocketServer } from 'ws'
 
 const dataFile = process.env.HEALTHAI_DATA_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'mock-db.json')
 const databaseFile = process.env.HEALTHAI_DB_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), 'healthai.sqlite')
@@ -19,6 +20,13 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const customerWebRoot = path.join(projectRoot, 'dist', 'build', 'h5')
 const legacyCustomerWebRoot = path.join(projectRoot, 'dist')
 const adminWebRoot = path.join(projectRoot, 'console', 'dist')
+const roomSockets = new Map()
+const broadcastRoomMessage = message => {
+  const sockets = roomSockets.get(message.conversationId)
+  if (!sockets) return
+  const payload = JSON.stringify({ type: 'message.created', data: message })
+  for (const client of sockets) if (client.readyState === 1) client.send(payload)
+}
 const apiVersion = 'v1'
 const isProduction = process.env.NODE_ENV === 'production'
 const allowMockProviders = process.env.HEALTHAI_ALLOW_MOCK_PROVIDERS === 'true'
@@ -295,7 +303,7 @@ const server = http.createServer(async (req, res) => {
   if (workflowRoutes) {
     const actor = actorFromRequest(req)
     const body = ['POST', 'PUT'].includes(req.method) ? await readBody(req) : {}
-    const data = handleWorkflow({ state, route, method: req.method, body, actor, query: url.searchParams })
+    const data = handleWorkflow({ state, route, method: req.method, body, actor, query: url.searchParams, onMessage: broadcastRoomMessage })
     if (data === undefined) return send(res, 404, { code: 404, message: '接口不存在' })
     if (req.method !== 'GET') persist()
     return send(res, 200, { code: 0, data })
@@ -573,6 +581,27 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && serveCustomerWeb(req, res, url.pathname)) return
   return send(res, 404, { code: 404, message: 'Not Found' })
   } catch (error) { return send(res, error.status || (error instanceof SyntaxError ? 400 : 500), { code: error.code || error.status || 500, message: error.status ? error.message : '请求处理失败，请重试' }) }
+})
+
+const socketServer = new WebSocketServer({ noServer: true })
+server.on('upgrade', (req, socket, head) => {
+  try {
+    const url = new URL(req.url, 'http://localhost')
+    const match = url.pathname.match(/^\/ws\/conversations\/([^/]+)$/)
+    const actor = verifyToken(url.searchParams.get('token'))
+    if (!match || !actor) throw new Error('unauthorized')
+    const room = state.workflow?.conversations?.find(item => item.id === decodeURIComponent(match[1]))
+    if (!room || !(actor.role === 'admin' || room.userId === actor.id || room.consultantId === actor.id)) throw new Error('forbidden')
+    socketServer.handleUpgrade(req, socket, head, client => {
+      const roomId = room.id
+      const sockets = roomSockets.get(roomId) || new Set()
+      sockets.add(client); roomSockets.set(roomId, sockets)
+      client.send(JSON.stringify({ type: 'room.ready', data: { conversationId: roomId } }))
+      client.on('close', () => { sockets.delete(client); if (!sockets.size) roomSockets.delete(roomId) })
+    })
+  } catch {
+    socket.destroy()
+  }
 })
 
 server.listen(Number(process.env.PORT || 8787), process.env.HOST || '127.0.0.1', () => console.log(`HealthAI API listening on http://${process.env.HOST || '127.0.0.1'}:${process.env.PORT || 8787} (db=${databaseMode})`))

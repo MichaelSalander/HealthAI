@@ -18,7 +18,7 @@ const session = ref<DemoSession | null>(null)
 const orders = ref<Order[]>([])
 const formatDate = (value?: string | null) => value ? value.slice(0, 10) : '暂无记录'
 const activeOrder = computed(() => orders.value.find(item => item.status === '服务中' || item.paymentStatus === 'success'))
-const switchAccount = () => { consultationRepository.logoutCustomer(); uni.reLaunch({ url: '/pages/login/index' }) }
+const switchAccount = () => { consultationRepository.logoutCustomer() }
 
 const load = async () => {
   try {

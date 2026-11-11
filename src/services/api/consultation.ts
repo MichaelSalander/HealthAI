@@ -6,7 +6,7 @@ const configuredBase = (import.meta as any).env?.VITE_API_BASE_URL as string | u
 const browserHost = typeof window !== 'undefined' ? window.location.hostname : ''
 const base = ((browserHost === 'localhost' || browserHost === '127.0.0.1') ? 'http://127.0.0.1:8787/api/v1' : (configuredBase || '/api/v1')).replace(/\/$/, '')
 const env = (import.meta as any).env || {}
-const isDemoMode = Boolean(env.DEV || env.VITE_DEMO_MODE === 'true' || env.VITE_AUTH_MODE === 'demo')
+const isDemoMode = Boolean(env.VITE_DEMO_MODE === 'true' || env.VITE_AUTH_MODE === 'demo')
 let customerSession: DemoSession | undefined
 const customerSessionKey = 'healthai_customer_session'
 let consultantSession: DemoSession | undefined
@@ -47,26 +47,30 @@ function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?:
         const payload = response.data as { data: T; message?: string }
         if (response.statusCode >= 200 && response.statusCode < 300) resolve(payload.data)
         else {
-          if (response.statusCode === 401 && session?.role === 'customer') clearCustomerSession()
+          if (response.statusCode === 401 && session) {
+            if (session.role === 'customer') clearCustomerSession()
+            else clearConsultantSession()
+            uni.reLaunch({ url: session.role === 'consultant' ? '/pages/consultant/login' : '/pages/login/index' })
+          }
           reject(new Error(payload.message || '操作失败，请重试'))
         }
-      }, fail: () => reject(new Error('无法连接本地服务，请确认 API 已启动')) })
+      }, fail: () => reject(new Error('连接失败，请检查网络后重试')) })
   })
 }
 export const consultationRepository = {
   login(role: DemoRole, id?: string) {
     if ((import.meta as any).env?.VITE_AUTH_MODE === 'wechat' && role === 'customer') return this.loginWithWechat(role)
     if (role === 'customer') {
-      const saved = customerSession || readCustomerSession()
+      const saved = readCustomerSession()
       if (saved && saved.role === 'customer') { customerSession = saved; return Promise.resolve(saved) }
       clearCustomerSession()
-      if (!isDemoMode) return Promise.reject(new Error('请先登录或注册会员账号'))
+      if (!isDemoMode || !id) return Promise.reject(new Error('请先登录或注册会员账号'))
     }
     if (role === 'consultant') {
-      const saved = consultantSession || readConsultantSession()
+      const saved = readConsultantSession()
       if (saved && saved.role === 'consultant' && (!id || saved.id === id)) { consultantSession = saved; return Promise.resolve(saved) }
       clearConsultantSession()
-      if (!isDemoMode) return Promise.reject(new Error('请先登录健管师账号'))
+      if (!isDemoMode || !id) return Promise.reject(new Error('请先登录健管师账号'))
     }
     return request<DemoSession>('/auth/demo-login', 'POST', { role, id }).then(session => {
       if (session.role !== role) throw new Error('登录角色不匹配，请重新登录')
@@ -94,13 +98,13 @@ export const consultationRepository = {
     })
   },
   wechatLogin(code: string, role: DemoRole = 'customer') { return request<DemoSession>('/auth/wechat-login', 'POST', { code, role }) },
-  async customer(): Promise<DemoSession> { return customerSession ||= readCustomerSession() || await this.login('customer') },
+  async customer(): Promise<DemoSession> { return customerSession = readCustomerSession() || await this.login('customer') },
   async useCustomer(id: string) {
     if (!isDemoMode) throw new Error('正式环境不支持切换演示客户')
     return persistCustomerSession(await this.login('customer', id))
   },
-  logoutCustomer() { clearCustomerSession() },
-  logoutConsultant() { clearConsultantSession() },
+  logoutCustomer() { clearCustomerSession(); uni.reLaunch({ url: '/pages/login/index' }) },
+  logoutConsultant() { clearConsultantSession(); uni.reLaunch({ url: '/pages/consultant/login' }) },
   directory() { return request<ConsultationConsultant[]>('/consultation-directory') },
   healthCenters() { return request<HealthCheckCenter[]>('/health-centers') },
   async eligibility() { return request<{ hasBloodTest: boolean; healthCenterRoute: string }>('/consultations/eligibility', 'GET', undefined, await this.customer()) },

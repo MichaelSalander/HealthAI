@@ -5,7 +5,8 @@ import { useHealthStore } from './stores/health'
 function currentRoute() {
   const hashPath = typeof window !== 'undefined' ? window.location.hash.split('?')[0] : ''
   const currentPages = (globalThis as { getCurrentPages?: () => Array<{ route?: string }> }).getCurrentPages?.() || []
-  return hashPath || currentPages[0]?.route || ''
+  const route = (hashPath || currentPages[currentPages.length - 1]?.route || '').replace(/^#/, '')
+  return route.startsWith('/') ? route : `/${route}`
 }
 
 type PortalRole = 'customer' | 'consultant'
@@ -36,15 +37,17 @@ function guardRoute() {
     return
   }
   const key = isConsultant ? 'healthai_consultant_session' : 'healthai_customer_session'
-  if (!uni.getStorageSync(key)) uni.reLaunch({ url: isConsultant ? '/pages/consultant/login' : '/pages/login/index' })
+  let valid = false
+  try { const saved = JSON.parse(String(uni.getStorageSync(key) || 'null')); valid = Boolean(saved?.token && saved.role === (isConsultant ? 'consultant' : 'customer')) } catch { /* Invalid session is treated as logged out. */ }
+  if (!valid) uni.reLaunch({ url: isConsultant ? '/pages/consultant/login' : '/pages/login/index' })
   else if (!isConsultant) useHealthStore().ensureUser()
 }
 
 onMounted(() => {
   guardRoute()
-  if (typeof window !== 'undefined') window.addEventListener('hashchange', guardRoute)
+  if (typeof window !== 'undefined') { window.addEventListener('hashchange', guardRoute); window.addEventListener('storage', guardRoute) }
 })
-onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('hashchange', guardRoute) })
+onUnmounted(() => { if (typeof window !== 'undefined') { window.removeEventListener('hashchange', guardRoute); window.removeEventListener('storage', guardRoute) } })
 </script>
 
 <template><slot /></template>

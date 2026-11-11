@@ -8,7 +8,7 @@ import { handleWorkflow } from './consultation-workflow.mjs'
 import { openSqliteStore } from './storage/sqlite-store.mjs'
 import { openPostgresStore } from './storage/postgres-store.mjs'
 import { exchangeMiniProgramCode, stableWechatUserId } from './wechat-auth.mjs'
-import { createAiProvider } from './providers/ai-provider.mjs'
+import { createAiProvider, ANALYSIS_VERSION } from './providers/ai-provider.mjs'
 import { createOcrProvider } from './providers/ocr-provider.mjs'
 import { WebSocketServer } from 'ws'
 
@@ -194,7 +194,7 @@ function secretTextEqual(left, right) {
 // 客戶只需要看到基礎健康結果；健管師專用的完整洞察不得透過客戶 API 洩露。
 function toCustomerAiReport(report) {
   if (!report) return null
-  const { consultantInsight, ...customerReport } = report
+  const { consultantInsight, findings, questions, lifestyleAdvice, followUp, limitations, ...customerReport } = report
   return customerReport
 }
 function resolvedCorsOrigin(req) {
@@ -682,10 +682,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (route === '/api/health/ai-reports/generate' && req.method === 'POST') {
     const actor = requireActor(req, ['customer']); const id = actor.id; const observations = state.observations[id] || []
-    const sourceObservationVersion = observations.map(item => item.id).join(',')
+    if (!observations.length) return send(res, 422, { code: 422, message: '暂无健康指标，无法生成报告分析' })
+    const profile = state.profiles[id] || {}
+    const sourceObservationVersion = createHmac('sha256', sessionSecret).update(JSON.stringify({ version: ANALYSIS_VERSION, observations, profile })).digest('hex')
     const latest = (state.aiReports[id] || [])[0]
     if (latest && latest.sourceObservationVersion === sourceObservationVersion) return send(res, 200, { code: 0, data: toCustomerAiReport(latest) })
-    const generated = await aiProvider.generate({ observations })
+    const generated = await aiProvider.generate({ observations, profile })
     const report = { id: `ai-${Date.now()}`, generatedAt: new Date().toISOString(), sourceObservationVersion, ...generated, generatedBy: actor.id, provider: aiProvider.name }
     state.aiReports[id] = [report, ...(state.aiReports[id] || [])]; persist(); return send(res, 201, { code: 0, data: toCustomerAiReport(report) })
   }

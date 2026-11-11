@@ -59,6 +59,26 @@ async function login(role, id) {
 
 function auth(session) { return { Authorization: `Bearer ${session.token}` } }
 
+test('customer supports username and email without changing identity or granting consultant access', async () => {
+  const register = payload => api('/api/v1/auth/customer-register', { method: 'POST', body: JSON.stringify(payload) })
+  const input = { email: 'dual-login@example.com', username: 'Member_2026', password: 'test-password-482' }
+  const created = await register(input)
+  assert.equal(created.response.status, 201)
+  for (const username of ['MEMBER_2026', 'dual-login@example.com']) {
+    const result = await api('/api/v1/auth/customer-login', { method: 'POST', body: JSON.stringify({ username, password: input.password }) })
+    assert.equal(result.response.status, 200)
+    assert.equal(result.body.data.id, created.body.data.id)
+    assert.equal(result.body.data.role, 'customer')
+  }
+  assert.equal((await register({ ...input, email: 'another@example.com' })).response.status, 409)
+  assert.equal((await register({ ...input, username: 'another_user' })).response.status, 409)
+  assert.equal((await register({ ...input, email: 'other@example.com', username: 'invalid name' })).response.status, 400)
+  const wrong = await api('/api/v1/auth/customer-login', { method: 'POST', body: JSON.stringify({ username: input.username, password: 'wrong' }) })
+  assert.equal(wrong.response.status, 401)
+  const operator = await api('/api/v1/auth/operator-login', { method: 'POST', body: JSON.stringify({ role: 'consultant', username: input.username, password: input.password }) })
+  assert.notEqual(operator.response.status, 200)
+})
+
 test('HTTP API completes customer, admin and consultant consultation flow', async () => {
   const health = await api('/healthz')
   assert.equal(health.response.status, 200)

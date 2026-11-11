@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useHealthStore } from './stores/health'
+import { uniApi as uni } from './services/platform/uni'
 
 function currentRoute() {
   const hashPath = typeof window !== 'undefined' ? window.location.hash.split('?')[0] : ''

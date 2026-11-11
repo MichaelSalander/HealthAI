@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { consultationRepository } from '../../services/api/consultation'
+import PasswordField from '../../components/PasswordField.vue'
+import { uniApi as uni } from '../../services/platform/uni'
 
 const username = ref('')
 const email = ref('')
@@ -15,7 +17,10 @@ const error = ref('')
 const showWechatLogin = false
 
 onLoad(() => {
-  if (uni.getStorageSync('healthai_customer_session')) uni.reLaunch({ url: '/pages/home/index' })
+  try {
+    const session = JSON.parse(String(uni.getStorageSync('healthai_customer_session') || 'null'))
+    if (session?.token && session.role === 'customer') uni.reLaunch({ url: '/pages/home/index' })
+  } catch { /* Invalid saved session must not create a redirect loop. */ }
 })
 
 async function passwordLogin() {
@@ -33,7 +38,7 @@ async function register() {
   if (password.value !== confirmPassword.value) { error.value = '两次输入的密码不一致'; return }
   loading.value = true; error.value = ''
   try {
-    await consultationRepository.customerRegister(email.value.trim(), password.value, name.value.trim())
+    await consultationRepository.customerRegister(email.value.trim(), password.value, name.value.trim(), username.value.trim())
     uni.reLaunch({ url: '/pages/report/index' })
   } catch (err) { error.value = err instanceof Error ? err.message : '注册失败，请稍后重试' }
   finally { loading.value = false }
@@ -53,20 +58,22 @@ async function wechatLogin() {
   <view class="page">
     <view class="brand">HealthAI</view>
     <view class="title">登录健康管理</view>
-    <view class="subtitle">使用 Email 登录或注册，继续管理你的健康资料</view>
+    <view class="subtitle">使用账号或 Email 登录，管理你的健康资料</view>
     <view class="form-card">
       <template v-if="mode === 'login'">
-        <input v-model="username" class="field" placeholder="请输入 Email" maxlength="64" />
+        <input v-model="username" class="field" placeholder="请输入账号或 Email" maxlength="128" />
       </template>
       <template v-else>
+        <input v-model="username" class="field" placeholder="账号（选填，4–32位字母、数字或下划线）" maxlength="32" />
         <input v-model="email" class="field" placeholder="请输入 Email" maxlength="64" />
         <input v-model="name" class="field" placeholder="昵称（选填）" maxlength="32" />
       </template>
-      <input v-model="password" class="field" placeholder="请输入密码" password maxlength="128" />
-      <input v-if="mode === 'register'" v-model="confirmPassword" class="field" placeholder="请再次输入密码" password maxlength="128" />
+      <PasswordField :key="mode" v-model="password" />
+      <PasswordField v-if="mode === 'register'" v-model="confirmPassword" placeholder="请再次输入密码" />
       <text v-if="error" class="error">{{ error }}</text>
-      <button class="primary" :disabled="loading" @click="mode === 'login' ? passwordLogin() : register()">{{ loading ? (mode === 'login' ? '登录中…' : '注册中…') : (mode === 'login' ? 'Email 登录' : '注册并开始使用') }}</button>
-      <text class="switch" @click="mode = mode === 'login' ? 'register' : 'login'; error = ''">{{ mode === 'login' ? '没有账号？立即注册' : '已有账号？返回登录' }}</text>
+      <button class="primary" :disabled="loading" @click="mode === 'login' ? passwordLogin() : register()">{{ loading ? (mode === 'login' ? '登录中…' : '注册中…') : (mode === 'login' ? '会员登录' : '注册并开始使用') }}</button>
+      <text class="switch" @click="mode = mode === 'login' ? 'register' : 'login'; username = ''; error = ''">{{ mode === 'login' ? '没有账号？立即注册' : '已有账号？返回登录' }}</text>
+      <text class="switch" @click="uni.reLaunch({ url: '/pages/consultant/login' })">健管师登录 →</text>
       <template v-if="showWechatLogin">
         <view class="divider"><view /> <text>或</text> <view /></view>
         <button class="wechat" :disabled="loading" @click="wechatLogin">微信登录</button>

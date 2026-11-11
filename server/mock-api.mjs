@@ -306,13 +306,16 @@ const server = http.createServer(async (req, res) => {
   if (route === '/api/auth/customer-register' && req.method === 'POST') {
     const body = await readBody(req)
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : ''
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     const password = typeof body.password === 'string' ? body.password : ''
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return send(res, 400, { code: 400, message: '请输入正确的 Email 地址' })
+    if (username && !/^[a-z0-9_]{4,32}$/.test(username)) return send(res, 400, { code: 400, message: '账号需为4–32位字母、数字或下划线' })
     if (password.length < 6) return send(res, 400, { code: 400, message: '密码至少需要 6 位' })
     const accounts = state.customerAccounts ||= []
-    if (accounts.some(item => String(item.username || '').toLowerCase() === email)) return send(res, 409, { code: 409, message: '该 Email 已注册，请直接登录' })
-    const account = { id: `u-${randomUUID().slice(0, 12)}`, role: 'customer', username: email, name: name || email.split('@')[0], passwordHash: hashPassword(password), createdAt: new Date().toISOString() }
+    const identifiers = new Set(accounts.flatMap(item => [item.username, item.email].filter(Boolean).map(value => String(value).toLowerCase())))
+    if (identifiers.has(email) || (username && identifiers.has(username))) return send(res, 409, { code: 409, message: '账号或 Email 已注册，请登录或使用其他账号' })
+    const account = { id: `u-${randomUUID().slice(0, 12)}`, role: 'customer', username: username || email, email, name: name || username || email.split('@')[0], passwordHash: hashPassword(password), createdAt: new Date().toISOString() }
     accounts.push(account)
     persist()
     const actor = { id: account.id, role: 'customer', name: account.name }
@@ -323,7 +326,7 @@ const server = http.createServer(async (req, res) => {
     if (typeof body.username !== 'string' || typeof body.password !== 'string' || !body.username.trim() || !body.password) return send(res, 400, { code: 400, message: '账号或密码不能为空' })
     const accounts = state.customerAccounts ||= customerAccounts.map(item => ({ ...item }))
     const username = body.username.trim().toLowerCase()
-    const account = accounts.find(item => String(item.username || '').toLowerCase() === username && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
+    const account = accounts.find(item => [item.username, item.email].some(value => value && String(value).toLowerCase() === username) && (item.passwordHash ? verifyPassword(body.password, item.passwordHash) : secretTextEqual(item.password, body.password)))
     if (!account) return send(res, accounts.length ? 401 : 503, { code: accounts.length ? 401 : 503, message: accounts.length ? '账号或密码错误' : '尚未配置客户账号' })
     const actor = { id: account.id, role: 'customer', name: account.name || account.username }
     return send(res, 200, { code: 0, data: { token: issueToken(actor), ...actor, expiresIn: sessionTtlSeconds, provider: 'password' } })

@@ -1,4 +1,5 @@
 /** Page lifecycle guard shared by H5 and mini-program pages. */
+import { uniApi as uni } from './platform/uni'
 export function guardPage() {
   const pages = getCurrentPages()
   if (!pages.length) return

@@ -2,7 +2,10 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+
+const pdfJsRoot = path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json'))
 
 function parseJson(content) {
   const text = String(content || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -101,18 +104,21 @@ function createOpenAiProvider() {
   }
 }
 
-async function extractPdfText(storagePath) {
+export async function extractPdfText(storagePath) {
   const buffer = await fs.readFile(storagePath)
-  const loadingTask = getDocument({ data: new Uint8Array(buffer), disableWorker: true })
+  const loadingTask = getDocument({ data: new Uint8Array(buffer), disableWorker: true,
+    cMapUrl: `${pdfJsRoot}/cmaps/`, cMapPacked: true,
+    standardFontDataUrl: `${pdfJsRoot}/standard_fonts/` })
   const document = await loadingTask.promise
   const pages = []
-  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+  try { for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber)
     const content = await page.getTextContent()
     const text = content.items.map(item => typeof item.str === 'string' ? item.str : '').join(' ').replace(/\s+/g, ' ').trim()
     if (text) pages.push({ pageNumber, text })
   }
   return pages
+  } finally { await document.destroy() }
 }
 
 function runProcess(command, args) {

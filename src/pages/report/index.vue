@@ -13,6 +13,7 @@ const reportKind = ref<'blood_test' | 'general'>('blood_test')
 const activePanel = ref<'upload' | 'history'>('upload')
 const reports = ref<HealthReport[]>([])
 const loading = ref(false)
+const uploadError = ref('')
 const store = useHealthStore()
 const selectedFile = ref<{ name: string; mimeType: string; sizeBytes: number; fileBase64: string } | null>(null)
 const extraction = ref<ReportExtraction | null>(null)
@@ -54,7 +55,38 @@ const chooseFile = () => {
   } })
 }
 const onFileChange = async (event: Event) => { const file = (event.target as HTMLInputElement).files?.[0]; if (!file) return; if (file.size > 20 * 1024 * 1024) return uni.showToast({ title: '文件不能超过20MB' }); selectedFile.value = { name: file.name, mimeType: file.type || 'application/octet-stream', sizeBytes: file.size, fileBase64: await readBrowserFile(file) } }
-const upload = async () => { if (loading.value || !selectedFile.value) return uni.showToast({ title: '请先选择报告文件' }); loading.value = true; try { const report = await healthRepository.uploadReport(selectedFile.value.name, reportKind.value, { mimeType: selectedFile.value.mimeType, sizeBytes: selectedFile.value.sizeBytes, fileBase64: selectedFile.value.fileBase64 }); selectedFile.value = null; await load(); if (extraction.value?.status === 'needs_confirmation' && extraction.value.candidates.length) { const parsed = extraction.value; await healthRepository.confirmReport(parsed.reportId, parsed.candidates); store.markReportUploaded(); extraction.value = null; await load(); uni.showToast({ title: '报告已解析并保存指标' }) } else if (report.status === '解析成功') { store.markReportUploaded(); uni.showToast({ title: '报告已上传' }) } else { uni.showToast({ title: '未识别到可保存的健康指标' }) } } catch (e) { const message = (e as Error).message; uni.showToast({ title: message }); if (message.includes('授权')) uni.navigateTo({ url: '/pages/health/consent' }) } finally { loading.value = false } }
+const upload = async () => {
+  if (loading.value || !selectedFile.value) return
+  loading.value = true
+  uploadError.value = ''
+  try {
+    const file = selectedFile.value
+    const report = await healthRepository.uploadReport(file.name, reportKind.value, { mimeType: file.mimeType, sizeBytes: file.sizeBytes, fileBase64: file.fileBase64 })
+    selectedFile.value = null
+    await load()
+    if (report.status === '解析失败') {
+      uploadError.value = '文件已上传，但解析失败。请查看下方原因并重试解析，无需重复上传。'
+      return
+    }
+    if (extraction.value?.status === 'needs_confirmation' && extraction.value.candidates.length) {
+      const parsed = extraction.value
+      await healthRepository.confirmReport(parsed.reportId, parsed.candidates)
+      store.markReportUploaded()
+      extraction.value = null
+      await load()
+      uni.showToast({ title: '报告已解析并保存指标' })
+    } else if (report.status === '解析成功') {
+      store.markReportUploaded()
+      uni.showToast({ title: '报告已上传' })
+    } else {
+      uploadError.value = '报告已上传，暂未识别到健康指标。'
+    }
+  } catch (e) {
+    const message = (e as Error).message
+    uploadError.value = message
+    if (message.includes('授权')) uni.navigateTo({ url: '/pages/health/consent' })
+  } finally { loading.value = false }
+}
 const retryExtraction = async () => { if (!extraction.value || loading.value) return; loading.value = true; try { const parsed = await healthRepository.retryReportExtraction(extraction.value.reportId); if (parsed.status === 'needs_confirmation' && parsed.candidates.length) { await healthRepository.confirmReport(parsed.reportId, parsed.candidates); store.markReportUploaded(); extraction.value = null; await load(); uni.showToast({ title: '报告已重新解析并保存指标' }) } else { extraction.value = parsed; await load(); uni.showToast({ title: '解析仍未成功' }) } } catch (e) { uni.showToast({ title: (e as Error).message }) } finally { loading.value = false } }
 const go = () => uni.navigateTo({ url: '/pages/result/index' })
 const showReportInfo = () => uni.showToast({ title: '报告已保存，可在健康结果查看指标' })
@@ -67,11 +99,12 @@ const visibleReports = computed(() => activePanel.value === 'history' ? reports.
     <view class="tabs"><text :class="{ active: activePanel === 'upload' }" @click="activePanel = 'upload'">上传报告</text><text :class="{ active: activePanel === 'history' }" @click="activePanel = 'history'">历史报告</text></view>
     <template v-if="activePanel === 'upload'">
       <AppCard class="upload-card">
-        <text class="section-title">请选择报告类型</text><text class="muted">上传后系统会提取报告中的健康指标，并等待你确认。</text>
+        <text class="section-title">请选择报告类型</text><text class="muted">上传后提取报告指标；较长的报告需要更多解析时间。</text>
         <view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view>
         <view class="upload-box"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><view class="btn file-label" @click="chooseFile">选择文件</view></view>
         <view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view>
         <button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button>
+        <text v-if="uploadError" class="error-title" role="alert">{{ uploadError }}</text>
       </AppCard>
       <AppCard v-if="extraction?.status === 'failed'" class="extraction-card"><text class="error-title">报告解析失败</text><text class="muted">{{ extraction.errorMessage || '当前未能识别报告内容，请检查文件后重试。' }}</text><button class="btn upload-action" :disabled="loading" @click="retryExtraction">{{ loading ? '重新解析中…' : '重新解析报告' }}</button></AppCard>
     </template>

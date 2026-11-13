@@ -7,26 +7,34 @@ import { consultationRepository as api } from '../../services/api/consultation'
 import { uniApi as uni } from '../../services/platform/uni'
 
 const loading = ref(true); const busy = ref(false); const error = ref(''); const hasBloodTest = ref(false); const consultants = ref<ConsultationConsultant[]>([]); const requests = ref<ConsultationRequestV2[]>([]); const selectedId = ref(''); let timer: ReturnType<typeof setInterval> | undefined
-const consultant = computed(() => consultants.value.find(item => item.id === selectedId.value) || consultants.value.find(item => item.acceptingNewClients) || consultants.value[0])
-const current = computed(() => requests.value[0])
+const consultant = computed(() => consultants.value.find(item => item.id === current.value?.consultantId) || consultants.value.find(item => item.id === selectedId.value) || consultants.value.find(item => item.acceptingNewClients) || consultants.value[0])
+const current = computed(() => requests.value.find(item => ['assigned', 'waiting_consultant', 'in_progress', 'queued'].includes(item.status)))
 const statusLabel = computed(() => consultant.value?.status === 'offline' ? '暂时离线' : consultant.value?.status === 'full' ? '当前已满' : '可接受咨询')
 async function load() { try { const [eligibility, directory, items] = await Promise.all([api.eligibility(), api.directory(), api.consultationRequests()]); hasBloodTest.value = eligibility.hasBloodTest; consultants.value = directory; if (!selectedId.value) selectedId.value = directory.find(item => item.id === 'c-101')?.id || directory[0]?.id || ''; requests.value = items; error.value = '' } catch (e) { error.value = (e as Error).message } finally { loading.value = false } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
 onLoad(options => { selectedId.value = options?.id || '' })
 onShow(() => { load(); stop(); timer = setInterval(load, 5000) }); onHide(stop); onUnload(stop)
-async function submit() { if (busy.value || !consultant.value || consultant.value.status === 'offline' || consultant.value.status === 'full') return; busy.value = true; try { const item = await api.createRequest('immediate_text'); requests.value = [item, ...requests.value]; uni.navigateTo({ url: `/pages/consultation/waiting?requestId=${item.id}` }) } catch (e) { error.value = (e as Error).message } finally { busy.value = false } }
+async function submit() {
+  if (busy.value || loading.value) return
+  busy.value = true
+  try {
+    const item = current.value || await api.createRequest('immediate_text')
+    if (item.consultantId) {
+      const opened = await api.openRequest(item.id)
+      uni.navigateTo({ url: `/pages/consultation/index?conversationId=${opened.room.id}` })
+    } else uni.navigateTo({ url: `/pages/consultation/waiting?requestId=${item.id}` })
+  } catch (e) { error.value = (e as Error).message } finally { busy.value = false }
+}
 </script>
 
 <template>
   <view class="page consult-entry">
-    <view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">咨询我的健康管理师</text><text class="top-action">♧</text></view>
-    <view class="entry-head"><text class="eyebrow">健康服务</text><text class="title">咨询我的健康管理师</text><text class="subtitle">平台会为你安排主责健康管理师，配对后即可进入专属咨询。</text></view>
     <AppCard v-if="error" class="error"><text class="danger">{{ error }}</text><button class="retry" @click="load">重新连接</button></AppCard>
     <AppCard v-if="!loading && consultant" class="consultant-card"><view class="consultant-head"><view class="avatar">{{ consultant.name.slice(0, 1) }}</view><view class="consultant-copy"><text class="consultant-name">{{ consultant.name }}</text><text class="consultant-level">{{ consultant.level }} · 平台安排</text><text class="consultant-intro">{{ consultant.intro || '为你持续跟进健康资料与咨询需求' }}</text></view><text class="status" :class="consultant.status">{{ statusLabel }}</text></view><view class="tags"><text v-for="item in consultant.categories?.slice(0, 3)" :key="item" class="tag">{{ item }}</text></view><button class="detail-btn" @click="uni.navigateTo({ url: `/pages/consultants/detail?id=${consultant.id}` })">查看健管师资料</button></AppCard>
     <AppCard v-else-if="!loading" class="empty"><text class="empty-title">正在安排健康管理师</text><text class="muted">平台确认后会通知你。</text></AppCard>
     <AppCard v-if="!loading && !hasBloodTest" class="guide"><view class="guide-icon">i</view><view class="guide-copy"><text class="guide-title">还没有血液检测报告</text><text class="muted">不影响本次咨询；上传报告后，健管师可结合指标继续跟进。</text></view><button class="guide-link" @click="uni.navigateTo({ url: '/pages/health-centers/index' })">查看指定体检中心</button></AppCard>
-    <AppCard v-if="current" class="progress-card"><view class="progress-head"><text class="progress-title">当前咨询</text><text class="tag">{{ current.status === 'queued' ? '等待配对' : current.status === 'assigned' ? '待确认' : current.status === 'in_progress' ? '咨询中' : current.status }}</text></view><text class="muted">{{ current.consultantName || '平台正在安排健管师' }}</text><button v-if="current.conversationId" class="outline-btn" @click="uni.navigateTo({ url: `/pages/consultation/index?conversationId=${current.conversationId}` })">进入咨询</button></AppCard>
-    <button class="btn submit" :disabled="busy || !consultant || consultant.status === 'offline' || consultant.status === 'full'" @click="submit">{{ busy ? '正在提交…' : consultant?.status === 'full' ? '当前暂不接待' : '立即咨询' }}</button>
+    <AppCard v-if="current" class="progress-card"><view class="progress-head"><text class="progress-title">当前咨询</text><text class="tag">{{ current.status === 'queued' ? '等待配对' : current.status === 'assigned' ? '已配对' : current.status === 'in_progress' ? '咨询中' : current.status }}</text></view><text class="muted">{{ current.consultantName || '平台正在安排健管师' }}</text></AppCard>
+    <button class="btn submit" :disabled="busy || loading" @click="submit">{{ busy ? '正在进入…' : current?.consultantId ? '进入咨询' : current ? '查看配对进度' : '咨询我的健康管理师' }}</button>
   </view>
 </template>
 

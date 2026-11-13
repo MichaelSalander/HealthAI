@@ -132,6 +132,7 @@ export const consultationRepository = {
   async createRequest(mode: ConsultationMode, requestId = `consult-${Date.now()}`) { return request<ConsultationRequestV2>('/consultation-requests', 'POST', { mode, serviceType: 'free_consult', requestId }, await this.customer()) },
   async consultationRequests(session?: DemoSession) { return request<ConsultationRequestV2[]>('/consultation-requests', 'GET', undefined, session || await this.customer()) },
   async acceptRequest(id: string, session: DemoSession) { return request<{ request: ConsultationRequestV2; room: ConsultationRoom }>(`/consultation-requests/${id}/accept`, 'POST', {}, session) },
+  async openRequest(id: string) { return request<{ request: ConsultationRequestV2; room: ConsultationRoom }>(`/consultation-requests/${id}/open`, 'POST', {}, await this.customer()) },
   async rooms(session?: DemoSession) { return request<ConsultationRoom[]>('/conversations', 'GET', undefined, session || await this.customer()) },
   async room(id: string, session?: DemoSession) { return request<ConsultationRoom>(`/conversations/${id}`, 'GET', undefined, session || await this.customer()) },
   async messages(id: string, session?: DemoSession) { return request<{ items: ConsultationMessage[]; nextCursor: string | null }>(`/conversations/${id}/messages`, 'GET', undefined, session || await this.customer()) },

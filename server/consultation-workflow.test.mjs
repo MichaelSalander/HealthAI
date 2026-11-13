@@ -80,3 +80,47 @@ test('long term rooms count toward capacity while existing rooms remain active',
   assert.equal(queued.status, 'queued')
   assert.equal(f.state.workflow.conversations.every(room => room.status === 'in_progress'), true)
 })
+
+test('assigned clients can message offline consultants before acceptance and reopen the same room', () => {
+  const f = fixture()
+  const req = f.call('consultation-requests', 'POST', { requestId: 'direct-1', mode: 'immediate_text' })
+  assert.ok(req.conversationId)
+  f.c.status = 'offline'; f.c.acceptingNewClients = false
+  const again = f.call('consultation-requests', 'POST', { requestId: 'direct-2', mode: 'immediate_text' })
+  assert.equal(again.id, req.id)
+  const opened = f.call(`consultation-requests/${req.id}/open`, 'POST')
+  assert.equal(opened.room.id, req.conversationId)
+  f.call(`conversations/${opened.room.id}/messages`, 'POST', { content: '离线留言', clientMessageId: 'msg-1' })
+  const consultant = { id: f.c.id, role: 'consultant', name: f.c.name }
+  assert.equal(f.call(`conversations/${opened.room.id}/messages`, 'GET', {}, consultant).items[0].content, '离线留言')
+  assert.ok(f.state.workflow.notifications.some(n => n.recipientId === consultant.id && n.resourceType === 'conversation' && n.resourceId === opened.room.id))
+  f.call(`conversations/${opened.room.id}/messages`, 'POST', { content: '已收到', clientMessageId: 'reply-1' }, consultant)
+  assert.equal(f.call(`conversations/${opened.room.id}/messages`).items.length, 2)
+  assert.throws(() => f.call(`consultation-requests/${req.id}/open`, 'POST', {}, { id: 'other', role: 'customer' }), /无权/)
+  f.call(`consultation-requests/${req.id}/accept`, 'POST', {}, consultant)
+  assert.equal(f.state.workflow.conversations.length, 1)
+})
+
+test('legacy assigned request opens without consultant acknowledgement', () => {
+  const f = fixture()
+  f.state.workflow.consultationRequests.push({ id: 'legacy', userId: f.customer.id, userName: f.customer.name, consultantId: f.c.id, consultantName: f.c.name, status: 'assigned' })
+  f.c.status = 'full'
+  const opened = f.call('consultation-requests/legacy/open', 'POST')
+  assert.ok(opened.room.id)
+  assert.equal(f.call('consultation-requests/legacy/open', 'POST').room.id, opened.room.id)
+})
+
+test('manual and automatic assignment immediately open rooms and respect capacity', () => {
+  const f = fixture(); f.c.status = 'offline'
+  const request = f.call('consultation-requests', 'POST', { requestId: 'queue-manual', mode: 'immediate_text' })
+  assert.equal(request.status, 'queued')
+  f.c.status = 'available'
+  f.call(`consultation-requests/${request.id}/assign`, 'POST', { consultantId: f.c.id }, f.admin)
+  assert.ok(request.conversationId)
+  f.c.status = 'offline'
+  const other = { id: 'auto-client', role: 'customer', name: '自动配对客户' }
+  const queued = f.call('consultation-requests', 'POST', { requestId: 'queue-auto', mode: 'immediate_text' }, other)
+  f.c.status = 'available'
+  f.call('consultation-requests/auto-assign', 'POST', {}, f.admin)
+  assert.ok(queued.conversationId)
+})

@@ -28,7 +28,10 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     const day = slot.startAt.slice(0, 10)
     return occupied(c.id, slotId) < slot.capacity && db.bookings.filter(b => active(b) && b.consultantId === c.id && b.slotStartAt?.slice(0, 10) === day).length < c.dailyLimit
   }
-  const activeClientCount = consultantId => new Set(db.conversations.filter(room => room.consultantId === consultantId && room.status !== 'completed').map(room => room.userId)).size
+  const activeClientCount = consultantId => new Set([
+    ...db.conversations.filter(room => room.consultantId === consultantId && room.status !== 'completed').map(room => room.userId),
+    ...db.consultationRequests.filter(item => item.consultantId === consultantId && ['assigned', 'waiting_consultant', 'in_progress'].includes(item.status)).map(item => item.userId)
+  ]).size
   const canAcceptNewClient = c => c.status === 'available' && c.acceptingNewClients !== false && activeClientCount(c.id) < c.maxActiveClients
   const project = c => ({ ...c, activeClientCount: activeClientCount(c.id), slots: c.slots.map(s => ({ ...s, remaining: Math.max(0, s.capacity - occupied(c.id, s.id)) })), bookedCount: db.bookings.filter(b => active(b) && b.consultantId === c.id).length })
   const requestVisible = r => actor.role === 'admin' || r.userId === actor.id || r.consultantId === actor.id
@@ -36,6 +39,17 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   const requestById = id => db.consultationRequests.find(r => r.id === id)
   const roomById = id => db.conversations.find(r => r.id === id)
   const roomView = room => ({ ...room, participants: room.participants.map(p => ({ ...p, online: now - Date.parse(p.lastSeenAt || 0) < 45000 })) })
+  const openAssignedRoom = item => {
+    if (!item.consultantId || !['assigned', 'in_progress', 'waiting_consultant'].includes(item.status)) fail('尚未分配健康管理师')
+    let room = roomById(item.conversationId) || db.conversations.find(r => r.userId === item.userId && r.consultantId === item.consultantId && r.status !== 'completed')
+    if (!room) {
+      room = { id: randomUUID(), consultationRequestId: item.id, userId: item.userId, userName: item.userName, consultantId: item.consultantId, consultantName: item.consultantName, status: 'in_progress', startedAt: stamp(), participants: [{ userId: item.userId, role: 'customer', name: item.userName }, { userId: item.consultantId, role: 'consultant', name: item.consultantName }] }
+      db.conversations.unshift(room)
+      audit('conversation.opened', item.id)
+    }
+    item.conversationId = room.id
+    return room
+  }
   if (route === '/api/consultation-directory' && method === 'GET') return db.consultants.map(project)
   if (route === '/api/consultant/clients' && method === 'GET') {
     requireRole('consultant', 'admin')
@@ -89,14 +103,15 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     requireRole('customer')
     if (typeof body.requestId !== 'string' || !body.requestId) fail('缺少请求标识', 400)
     if (!['immediate_text', 'immediate_voice', 'scheduled'].includes(body.mode)) fail('咨询方式无效', 400)
-    const existing = db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
-    if (existing) return existing
+    const existing = db.consultationRequests.find(item => item.userId === actor.id && ['assigned', 'in_progress', 'waiting_consultant', 'queued'].includes(item.status)) || db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
+    if (existing) { if (existing.consultantId && ['assigned', 'in_progress', 'waiting_consultant'].includes(existing.status)) openAssignedRoom(existing); return existing }
     const assigned = db.consultants.find(person => person.id === 'c-101' && person.freeConsultEnabled && canAcceptNewClient(person))
     const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: 'c-101', consultantId: assigned?.id, consultantName: assigned?.name, status: assigned ? 'assigned' : 'queued', createdAt: stamp(), assignedAt: assigned ? stamp() : undefined }
     db.consultationRequests.unshift(item); audit('consultation.requested', item.id)
+    if (assigned) openAssignedRoom(item)
     if (assigned) notifyResource('consultant', assigned.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id)
     notifyResource('admin', 'admin-001', assigned ? '新的咨询已自动配对 C-101' : '有新的即时咨询请求', 'consultation_request', item.id)
-    if (assigned) notifyResource('customer', item.userId, `已为您配对 ${assigned.name}，等待健管师确认`, 'consultation_request', item.id)
+    if (assigned) notifyResource('customer', item.userId, `已为您配对 ${assigned.name}，可以开始留言`, 'conversation', item.conversationId)
     return item
   }
   if (route === '/api/consultation-requests' && method === 'GET') {
@@ -110,22 +125,30 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     requireRole('admin'); const item = requestById(requestAssign[1]); if (!item) fail('咨询请求不存在', 404); if (!['queued', 'reassigned'].includes(item.status)) fail('该请求当前不可派单')
     const c = db.consultants.find(person => person.id === body.consultantId); if (!c || !c.freeConsultEnabled || !canAcceptNewClient(c)) fail('目标健管师当前已达到承接上限或暂不接新客户')
     Object.assign(item, { consultantId: c.id, consultantName: c.name, status: 'assigned', assignedAt: stamp() }); audit('consultation.assigned', item.id)
-    notifyResource('consultant', c.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${c.name}，等待健管师确认`, 'consultation_request', item.id); return item
+    openAssignedRoom(item)
+    notifyResource('consultant', c.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${c.name}，可以开始留言`, 'conversation', item.conversationId); return item
   }
   if (route === '/api/consultation-requests/auto-assign' && method === 'POST') {
     requireRole('admin'); let assignedCount = 0
     for (const item of db.consultationRequests.filter(item => ['queued', 'reassigned'].includes(item.status))) {
       const candidates = db.consultants.filter(c => c.freeConsultEnabled && canAcceptNewClient(c)).sort((a, b) => project(a).activeClientCount - project(b).activeClientCount)
       const selected = candidates[0]; if (!selected) continue
-      Object.assign(item, { consultantId: selected.id, consultantName: selected.name, status: 'assigned', assignedAt: stamp() }); audit('consultation.auto_assigned', item.id); notifyResource('consultant', selected.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${selected.name}，等待健管师确认`, 'consultation_request', item.id); assignedCount++
+      Object.assign(item, { consultantId: selected.id, consultantName: selected.name, status: 'assigned', assignedAt: stamp() }); audit('consultation.auto_assigned', item.id); openAssignedRoom(item); notifyResource('consultant', selected.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id); notifyResource('customer', item.userId, `已为您配对 ${selected.name}，可以开始留言`, 'consultation_request', item.id); assignedCount++
     }
     return { assignedCount }
   }
   const requestAccept = route.match(/^\/api\/consultation-requests\/([^/]+)\/accept$/)
+  const requestOpen = route.match(/^\/api\/consultation-requests\/([^/]+)\/open$/)
+  if (requestOpen && method === 'POST') {
+    requireRole('customer', 'consultant', 'admin')
+    const item = requestById(requestOpen[1])
+    if (!item || !requestVisible(item)) fail('无权进入此咨询', 403)
+    return { request: item, room: roomView(openAssignedRoom(item)) }
+  }
   if (requestAccept && method === 'POST') {
     requireRole('consultant'); const item = requestById(requestAccept[1]); if (!item) fail('咨询请求不存在', 404); if (item.consultantId !== actor.id || item.status !== 'assigned') fail('当前请求不可接受', 403)
-    const room = { id: randomUUID(), consultationRequestId: item.id, userId: item.userId, userName: item.userName, consultantId: actor.id, consultantName: actor.name, status: 'in_progress', startedAt: stamp(), participants: [{ userId: item.userId, role: 'customer', name: item.userName, lastSeenAt: stamp() }, { userId: actor.id, role: 'consultant', name: actor.name, lastSeenAt: stamp() }] }
-    item.status = 'in_progress'; item.acceptedAt = stamp(); item.conversationId = room.id; db.conversations.unshift(room); db.messages.unshift({ id: randomUUID(), conversationId: room.id, senderId: 'system', senderRole: 'admin', senderName: '系统', type: 'system', content: `${actor.name} 已进入咨询房间`, status: 'sent', sentAt: stamp() }); audit('consultation.accepted', item.id); notifyResource('customer', item.userId, `${actor.name} 已进入咨询房间`, 'conversation', room.id); return { request: item, room: roomView(room) }
+    const room = openAssignedRoom(item)
+    item.status = 'in_progress'; item.acceptedAt = stamp(); audit('consultation.accepted', item.id); return { request: item, room: roomView(room) }
   }
   if (route === '/api/conversations' && method === 'GET') { requireRole('customer', 'consultant', 'admin'); return db.conversations.filter(roomVisible).map(roomView) }
   const roomRoute = route.match(/^\/api\/conversations\/([^/]+)$/)

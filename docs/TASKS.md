@@ -196,4 +196,5 @@
 - [x] T485 ff61e482 正式部署：Cloudways 2026-11-11 14:34:28 顯示 Success；正式會員登入頁已顯示帳號／Email、小眼睛和健管師入口。更新後需重新填寫會員憑證，正式 PDF 上傳驗收暫未完成。本地 Email 再登入亦通過；typecheck、H5 build 通過。
 - [x] T486 分配即開通留言：自動／手動分配立即建立房間；重複請求沿用活躍諮詢；新增受權限保護的 open 接口相容舊 assigned 資料；離線與滿額不阻擋既有客戶留言。工作流測試 12/12、API 整合 2/2、typecheck、H5 build 通過。
 - [x] T487 諮詢入口去重：保留原生導航標題，移除頁內重複頂欄與大標題；僅保留一個進入諮詢按鈕，已分配不再等待健管師確認。
-- [ ] T488 T486–487 正式部署與瀏覽器驗收：2026-11-13 工具回報 Local browser use is disabled in Work settings；尚未操作 Cloudways 部署或驗證正式手機畫面。
+- [ ] T488 T486–487 正式部署與瀏覽器驗收：瀏覽器權限恢復；555b0d0c 已於 2026-11-13 22:19:57 顯示部署 Success。正式會員未登入，雙端聊天瀏覽器驗收尚未完成。
+- [x] T489 手機聊天室輸入列高度：雙端聊天室改 custom navigation，移除原生導航額外高度；固定 flex 容器並跟隨 visualViewport 高度與 offset，僅訊息區滾動。typecheck、H5 build 通過；隔離本地瀏覽器 390×660 / 390×360 測得輸入列 bottom 等於可視高度、pageScroll=0，留言成功。截圖 output/viewport-qa/chat-390x660.jpg。iOS Safari 實機鍵盤仍待驗收。

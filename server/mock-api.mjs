@@ -610,8 +610,8 @@ const server = http.createServer(async (req, res) => {
       storagePath = path.relative(uploadRoot, path.join(folder, storedName)).replaceAll(path.sep, '/')
     }
     const reportId = `r-${Date.now()}`; const measuredAt = new Date().toISOString().slice(0, 10)
-    const report = { id: reportId, name: fileName, kind, date: measuredAt, status: kind === 'blood_test' ? '待确认' : '解析成功', source: '体检报告', uploadedBy: actor.id, mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined, sizeBytes: Number.isFinite(body.sizeBytes) ? body.sizeBytes : undefined, storagePath, parseMode: process.env.OCR_PROVIDER || 'mock' }
-    if (kind === 'blood_test') {
+    const report = { id: reportId, name: fileName, kind, date: measuredAt, status: '待确认', source: '体检报告', uploadedBy: actor.id, mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined, sizeBytes: Number.isFinite(body.sizeBytes) ? body.sizeBytes : undefined, storagePath, parseMode: process.env.OCR_PROVIDER || 'mock' }
+    { // Every uploaded health report is extracted; legacy kind is metadata only.
       state.reportExtractions ||= {}
       try {
         const extraction = await ocrProvider.extract({ reportId, measuredAt, storagePath: storagePath ? path.join(uploadRoot, storagePath) : undefined, mimeType: report.mimeType, fileName: report.name })
@@ -652,7 +652,7 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer']); const reportId = retryExtractionRoute[1]
     const report = (state.reports[actor.id] || []).find(item => item.id === reportId)
     const previous = state.reportExtractions?.[reportId]
-    if (!report || report.kind !== 'blood_test') { const error = new Error('血液检测报告不存在'); error.status = 404; throw error }
+    if (!report) { const error = new Error('体检报告不存在'); error.status = 404; throw error }
     if (!previous || previous.status !== 'failed') { const error = new Error('当前报告不需要重新解析'); error.status = 409; throw error }
     try {
       const extraction = await ocrProvider.extract({ reportId, measuredAt: report.date, storagePath: report.storagePath ? path.join(uploadRoot, report.storagePath) : undefined, mimeType: report.mimeType, fileName: report.name })

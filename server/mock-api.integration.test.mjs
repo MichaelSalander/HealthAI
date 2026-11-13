@@ -143,6 +143,14 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
 
   const eligibility = await api('/api/v1/consultations/eligibility', { headers: auth(customer) })
   assert.equal(eligibility.body.data.hasBloodTest, true)
+  // Unified UI sends general; it must extract rather than claim success after storage.
+  for (const kind of ['general', undefined]) {
+    const result = await api('/api/v1/health/reports', { method: 'POST', headers: auth(customer), body: JSON.stringify({ fileName: 'general.pdf', kind, mimeType: 'application/pdf', sizeBytes: 5, fileBase64: 'aGVsbG8=' }) })
+    assert.equal(result.response.status, 201)
+    assert.equal(result.body.data.status, '待确认')
+    const parsed = await api(`/api/v1/health/reports/${result.body.data.id}/extractions`, { headers: auth(customer) })
+    assert.ok(parsed.body.data.candidates.length > 0)
+  }
   const ai = await api('/api/v1/health/ai-reports/generate', { method: 'POST', headers: auth(customer), body: '{}' })
   assert.equal(ai.response.status, 201)
   assert.ok(ai.body.data.summary)

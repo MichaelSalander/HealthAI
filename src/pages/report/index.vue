@@ -9,7 +9,6 @@ import { useHealthStore } from '../../stores/health'
 import { uniApi as uni } from '../../services/platform/uni'
 import type { HealthReport, ReportExtraction } from '../../types/domain'
 
-const reportKind = ref<'blood_test' | 'general'>('blood_test')
 const activePanel = ref<'upload' | 'history'>('upload')
 const reports = ref<HealthReport[]>([])
 const loading = ref(false)
@@ -61,7 +60,7 @@ const upload = async () => {
   uploadError.value = ''
   try {
     const file = selectedFile.value
-    const report = await healthRepository.uploadReport(file.name, reportKind.value, { mimeType: file.mimeType, sizeBytes: file.sizeBytes, fileBase64: file.fileBase64 })
+    const report = await healthRepository.uploadReport(file.name, 'general', { mimeType: file.mimeType, sizeBytes: file.sizeBytes, fileBase64: file.fileBase64 })
     selectedFile.value = null
     await load()
     if (report.status === '解析失败') {
@@ -99,8 +98,7 @@ const visibleReports = computed(() => activePanel.value === 'history' ? reports.
     <view class="tabs"><text :class="{ active: activePanel === 'upload' }" @click="activePanel = 'upload'">上传报告</text><text :class="{ active: activePanel === 'history' }" @click="activePanel = 'history'">历史报告</text></view>
     <template v-if="activePanel === 'upload'">
       <AppCard class="upload-card">
-        <text class="section-title">请选择报告类型</text><text class="muted">上传后提取报告指标；较长的报告需要更多解析时间。</text>
-        <view class="row"><button size="mini" @click="reportKind = 'blood_test'">{{ reportKind === 'blood_test' ? '✓ ' : '' }}血液检测报告</button><button size="mini" @click="reportKind = 'general'">{{ reportKind === 'general' ? '✓ ' : '' }}其他报告</button></view>
+        <text class="section-title">上传体检报告</text><text class="muted">上传后提取报告指标；较长的报告需要更多解析时间。</text>
         <view class="upload-box"><text class="upload-icon">⇧</text><text class="upload-title">{{ loading ? '正在上传…' : '选择体检报告' }}</text><text class="muted">支持 PDF · JPG · PNG</text><text class="muted">最大 20MB</text><view class="btn file-label" @click="chooseFile">选择文件</view></view>
         <view v-if="selectedFile" class="file-item"><view class="file-icon">▤</view><view class="grow"><text>{{ selectedFile.name }}</text><text class="muted">{{ Math.max(1, Math.round(selectedFile.sizeBytes / 1024)) }} KB</text></view><text @click="selectedFile = null">×</text></view>
         <button v-if="selectedFile" class="btn upload-action" :disabled="loading" @click="upload">{{ loading ? '上传中…' : '上传并解析' }}</button>

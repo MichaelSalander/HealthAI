@@ -266,7 +266,8 @@ function serveCustomerWeb(req, res, pathname) {
   const isSafe = candidate === root || candidate.startsWith(`${root}${path.sep}`)
   const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(root, 'index.html')
   if (!filePath.startsWith(`${root}${path.sep}`) && filePath !== path.join(root, 'index.html')) return false
-  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
+  const noStore = filePath.endsWith('index.html') || path.basename(filePath) === 'platform-config.json'
+  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': noStore ? 'no-store' : 'public, max-age=31536000, immutable' })
   fs.createReadStream(filePath).pipe(res)
   return true
 }
@@ -278,7 +279,8 @@ function serveAdminWeb(req, res, pathname) {
   const isSafe = candidate === adminWebRoot || candidate.startsWith(`${adminWebRoot}${path.sep}`)
   const filePath = isSafe && fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(adminWebRoot, 'index.html')
   if (!filePath.startsWith(`${adminWebRoot}${path.sep}`) && filePath !== path.join(adminWebRoot, 'index.html')) return false
-  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': filePath.endsWith('index.html') ? 'no-store' : 'public, max-age=31536000, immutable' })
+  const noStore = filePath.endsWith('index.html') || path.basename(filePath) === 'platform-config.json'
+  res.writeHead(200, { 'Content-Type': staticContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': noStore ? 'no-store' : 'public, max-age=31536000, immutable' })
   fs.createReadStream(filePath).pipe(res)
   return true
 }

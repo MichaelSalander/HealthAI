@@ -31,7 +31,9 @@ export const getPlatformConfig = async (app: App): Promise<undefined> => {
   app.config.globalProperties.$config = getConfig();
   return axios({
     method: "get",
-    url: `${VITE_PUBLIC_PATH}platform-config.json`
+    // The platform config controls visible branding. Version the request so
+    // clients that previously cached the template defaults receive HealthAI.
+    url: `${VITE_PUBLIC_PATH}platform-config.json?v=healthai-20261114`
   })
     .then(({ data: config }) => {
       let $config = app.config.globalProperties.$config;

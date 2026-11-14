@@ -199,3 +199,4 @@
 - [ ] T488 T486–487 正式部署與瀏覽器驗收：瀏覽器權限恢復；555b0d0c 已於 2026-11-13 22:19:57 顯示部署 Success。正式會員未登入，雙端聊天瀏覽器驗收尚未完成。
 - [x] T489 手機聊天室輸入列高度：雙端聊天室改 custom navigation，移除原生導航額外高度；固定 flex 容器並跟隨 visualViewport 高度與 offset，僅訊息區滾動。typecheck、H5 build 通過；隔離本地瀏覽器 390×660 / 390×360 測得輸入列 bottom 等於可視高度、pageScroll=0，留言成功。截圖 output/viewport-qa/chat-390x660.jpg。iOS Safari 實機鍵盤仍待驗收。
 - [x] T490 单一体检报告上传：移除血检／其他类型选择，新上传统一提取指标，修正 general 仅存档却显示解析成功；保留旧分类数据，失败报告支持重试。API 整合测试 2/2、typecheck、build:h5 通过；正式 OCR 实际报告未重新验收。
+- [x] T491 手动记录重复标题：移除页内 topbar 和无功能装饰，保留原生导航及返回，与原图 C-03 单一标题一致。typecheck、build:h5 通过；正式页面浏览器需会员登录，Cloudways 会话过期，尚未部署。

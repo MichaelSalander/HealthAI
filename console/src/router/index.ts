@@ -58,7 +58,14 @@ Object.keys(modules).forEach(key => {
 // template's parentId-based hierarchy converter removes these routes because
 // they intentionally do not use the template's parentId metadata.
 export const constantRoutes: Array<RouteRecordRaw> = ascending(
-  routes.flat(Infinity)
+  [
+    {
+      path: "/",
+      redirect: "/healthai/overview",
+      meta: { showLink: false }
+    },
+    ...routes.flat(Infinity)
+  ]
 ) as Array<RouteRecordRaw>;
 
 /** 初始的静态路由，用于退出登录时重置路由 */

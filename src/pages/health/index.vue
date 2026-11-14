@@ -5,24 +5,23 @@ import AppCard from '../../components/AppCard.vue'
 import BottomNav from '../../components/BottomNav.vue'
 import SectionTitle from '../../components/SectionTitle.vue'
 import { healthRepository } from '../../services/api/repositories'
-import type { HealthTrend, Observation } from '../../types/domain'
+import HealthTrendChart from '../../components/HealthTrendChart.vue'
+import type { Observation } from '../../types/domain'
 
 const observations = ref<Observation[]>([])
-const trends = ref<HealthTrend[]>([])
 const activeTab = ref<'overview' | 'metrics' | 'trends'>('overview')
 const healthScore = computed(() => {
   if (!observations.value.length) return '--'
   const abnormal = observations.value.filter(item => item.status !== '正常').length
   return String(Math.max(0, Math.round(100 - abnormal / observations.value.length * 35)))
 })
-const load = async () => { observations.value = await healthRepository.getObservations(); trends.value = await healthRepository.getTrends('weight') }
+const load = async () => { observations.value = await healthRepository.getObservations() }
 onShow(load)
 const go = (url: string) => uni.navigateTo({ url })
 </script>
 
 <template>
   <view class="page">
-    <view class="topbar"><text class="back" @click="go('/pages/home/index')">‹</text><text class="top-title">我的健康</text><text @click="go('/pages/health/consent')">♧</text></view>
     <view class="tabs"><button class="tab" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">总览</button><button class="tab" :class="{ active: activeTab === 'metrics' }" @click="activeTab = 'metrics'">指标</button><button class="tab" :class="{ active: activeTab === 'trends' }" @click="activeTab = 'trends'">趋势</button></view>
 
     <template v-if="activeTab === 'overview'">
@@ -33,7 +32,7 @@ const go = (url: string) => uni.navigateTo({ url })
       <SectionTitle title="全部健康指标" /><AppCard><view v-for="item in observations" :key="item.id" class="list-item"><view class="icon-box" :class="item.status === '正常' ? 'normal-icon' : 'danger-icon'">{{ item.status === '正常' ? '✓' : '↑' }}</view><view class="grow"><text>{{ item.name }}</text><text class="subtitle">{{ item.value }} {{ item.unit }} · 参考 {{ item.reference }}</text></view><text :class="item.status === '正常' ? 'normal' : 'danger'">{{ item.status }}</text></view><text v-if="!observations.length" class="muted">暂无健康指标，请上传报告或手动记录。</text></AppCard>
     </template>
     <template v-else>
-      <SectionTitle title="健康趋势" /><AppCard><view v-if="trends.length"><view class="row"><text class="tag">体重</text><text class="tag">血压</text><text class="tag">血糖</text></view><view class="chart"><view v-for="item in trends" :key="item.label" class="bar" :style="{ height: `${Math.max(28, item.value * 1.8)}rpx` }"></view></view><view class="row muted small"><text v-for="item in trends" :key="item.label">{{ item.label }}</text></view><button class="btn secondary" @click="go('/pages/trends/index')">查看完整趋势</button></view><text v-else class="muted">暂无趋势数据，请先确认至少一项健康指标。</text></AppCard>
+      <SectionTitle title="健康趋势" /><AppCard><HealthTrendChart /><button class="btn secondary" @click="go('/pages/trends/index')">查看完整趋势</button></AppCard>
     </template>
     <AppCard v-if="activeTab !== 'metrics'" class="result-link"><button class="btn" @click="go('/pages/result/index')">查看健康结果</button></AppCard>
     <BottomNav active="health" />

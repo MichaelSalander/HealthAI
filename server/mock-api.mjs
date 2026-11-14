@@ -560,7 +560,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (route === '/api/health/profile' && req.method === 'PUT') {
     const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const body = await readBody(req); const id = actor.id
-    state.profiles[id] = { ...(state.profiles[id] || {}), ...body, userId: id, updatedAt: new Date().toISOString() }; persist()
+    if (body.targetWeightKg !== undefined && body.targetWeightKg !== '' && (!Number.isFinite(Number(body.targetWeightKg)) || Number(body.targetWeightKg) <= 0)) { const error = new Error('目标体重必须是大于零的数字'); error.status = 400; throw error }
+    state.profiles[id] = { ...(state.profiles[id] || {}), ...body, userId: id, updatedAt: new Date().toISOString() }; await persist()
     return send(res, 200, { code: 0, data: state.profiles[id] })
   }
   if (route === '/api/health/observations' && req.method === 'GET') {
@@ -571,14 +572,18 @@ const server = http.createServer(async (req, res) => {
     const actor = requireActor(req, ['customer']); const code = url.searchParams.get('code') || ''
     const items = (state.observations[actor.id] || [])
       .filter(item => item.code === code)
-      .map(item => ({ label: String(item.measuredAt || '').slice(0, 7), value: Number.parseFloat(String(item.value)) }))
-      .filter(item => item.label && Number.isFinite(item.value))
       .reverse()
+      .sort((a, b) => String(a.measuredAt).localeCompare(String(b.measuredAt)))
+      .map(item => { const parts = String(item.value).split('/'); return { id: item.id, measuredAt: item.measuredAt, label: String(item.measuredAt || '').slice(0, 10), value: Number(parts[0]), ...(code === 'blood-pressure' && parts.length === 2 ? { secondaryValue: Number(parts[1]) } : {}), unit: item.unit } })
+      .filter(item => item.label && Number.isFinite(item.value))
     return send(res, 200, { code: 0, data: items })
   }
   if (route === '/api/health/observations' && req.method === 'POST') {
-    const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const id = actor.id; const body = await readBody(req); const item = { ...body, id: `o-${Date.now()}`, measuredAt: body.measuredAt || new Date().toISOString().slice(0, 10) }
-    state.observations[id] = [item, ...(state.observations[id] || [])]; persist(); return send(res, 201, { code: 0, data: item })
+    const actor = requireActor(req, ['customer']); requireHealthDataConsent(actor); const id = actor.id; const body = await readBody(req)
+    const parts = String(body.value ?? '').trim().split('/')
+    if (!body.code || parts.some(value => !value.trim() || !Number.isFinite(Number(value)) || Number(value) <= 0) || (body.code === 'blood-pressure' ? parts.length !== 2 : parts.length !== 1)) { const error = new Error('请填写有效数值，血压格式为 120/80'); error.status = 400; throw error }
+    const item = { ...body, sourceType: 'manual', id: `o-${randomUUID()}`, measuredAt: body.measuredAt || new Date().toISOString() }
+    state.observations[id] = [item, ...(state.observations[id] || [])]; await persist(); return send(res, 201, { code: 0, data: item })
   }
   if (route === '/api/health/data-sources' && req.method === 'GET') {
     const actor = requireActor(req, ['customer']); const reports = (state.reports[actor.id] || []).map(reportView); const observations = state.observations[actor.id] || []

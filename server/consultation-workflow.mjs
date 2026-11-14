@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto'
 const active = b => ['pending_assignment', 'assigned', 'accepted'].includes(b.status)
 const fail = (message, status = 409) => { throw Object.assign(new Error(message), { status }) }
 const people = [
-  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['体重管理', '运动营养'], phone: '', intro: '' },
-  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['睡眠管理', '女性健康'], phone: '', intro: '' },
-  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false, categories: ['慢病管理'], phone: '', intro: '' }
+  { id: 'c-101', name: '陈晨', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['体重管理', '运动营养'], phone: '', intro: '协助整理体检资料、日常记录与健康目标，持续跟进咨询需求。', avatarUrl: '', certifications: [] },
+  { id: 'c-102', name: '林悦', level: '初级', status: 'available', freeConsultEnabled: true, categories: ['睡眠管理', '女性健康'], phone: '', intro: '关注作息、睡眠与女性日常健康管理。', avatarUrl: '', certifications: [] },
+  { id: 'c-103', name: '周宁', level: '初级', status: 'offline', freeConsultEnabled: false, categories: ['慢病管理'], phone: '', intro: '协助长期记录健康指标与整理复查重点。', avatarUrl: '', certifications: [] }
 ]
 export function seedWorkflow() {
   const start = new Date(); start.setUTCHours(0, 0, 0, 0); start.setUTCDate(start.getUTCDate() + 1)
@@ -51,6 +51,13 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     return room
   }
   if (route === '/api/consultation-directory' && method === 'GET') return db.consultants.map(project)
+  if (route === '/api/consultation-directory' && method === 'POST') {
+    requireRole('admin')
+    const name = String(body.name || '').trim().slice(0, 60)
+    if (!name) fail('请填写健管师姓名', 400)
+    const c = { id: `c-${randomUUID()}`, name, level: '初级', status: 'offline', freeConsultEnabled: false, categories: [], phone: '', intro: '', avatarUrl: '', certifications: [], dailyLimit: 8, maxActiveClients: 3, acceptingNewClients: false, slots: [] }
+    db.consultants.push(c); audit('consultant.created', c.id); return project(c)
+  }
   if (route === '/api/consultant/clients' && method === 'GET') {
     requireRole('consultant', 'admin')
     const assignedIds = new Set([...db.bookings.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId), ...db.consultationRequests.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId)])
@@ -105,12 +112,14 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     if (!['immediate_text', 'immediate_voice', 'scheduled'].includes(body.mode)) fail('咨询方式无效', 400)
     const existing = db.consultationRequests.find(item => item.userId === actor.id && ['assigned', 'in_progress', 'waiting_consultant', 'queued'].includes(item.status)) || db.consultationRequests.find(item => item.userId === actor.id && item.requestId === body.requestId)
     if (existing) { if (existing.consultantId && ['assigned', 'in_progress', 'waiting_consultant'].includes(existing.status)) openAssignedRoom(existing); return existing }
-    const assigned = db.consultants.find(person => person.id === 'c-101' && person.freeConsultEnabled && canAcceptNewClient(person))
-    const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: 'c-101', consultantId: assigned?.id, consultantName: assigned?.name, status: assigned ? 'assigned' : 'queued', createdAt: stamp(), assignedAt: assigned ? stamp() : undefined }
+    const preference = typeof body.consultantId === 'string' && body.consultantId ? body.consultantId : 'c-101'
+    if (!db.consultants.some(person => person.id === preference)) fail('健管师不存在', 404)
+    const assigned = db.consultants.find(person => person.id === preference && person.freeConsultEnabled && canAcceptNewClient(person))
+    const item = { id: randomUUID(), requestId: body.requestId, userId: actor.id, userName: actor.name, serviceType: body.serviceType || 'free_consult', mode: body.mode, consultantPreference: preference, consultantId: assigned?.id, consultantName: assigned?.name, status: assigned ? 'assigned' : 'queued', createdAt: stamp(), assignedAt: assigned ? stamp() : undefined }
     db.consultationRequests.unshift(item); audit('consultation.requested', item.id)
     if (assigned) openAssignedRoom(item)
     if (assigned) notifyResource('consultant', assigned.id, `${item.userName} 已配对，请及时进入咨询`, 'consultation_request', item.id)
-    notifyResource('admin', 'admin-001', assigned ? '新的咨询已自动配对 C-101' : '有新的即时咨询请求', 'consultation_request', item.id)
+    notifyResource('admin', 'admin-001', assigned ? `新的咨询已自动配对 ${assigned.name}` : '有新的即时咨询请求', 'consultation_request', item.id)
     if (assigned) notifyResource('customer', item.userId, `已为您配对 ${assigned.name}，可以开始留言`, 'conversation', item.conversationId)
     return item
   }
@@ -217,7 +226,10 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
     const categories = Array.isArray(body.categories) ? body.categories.map(value => String(value).trim()).filter(Boolean).slice(0, 9) : c.categories
     const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : c.phone || ''
     const intro = typeof body.intro === 'string' ? body.intro.trim().slice(0, 500) : c.intro || ''
-    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), acceptingNewClients: body.status === 'available', slots, categories, phone, intro }); audit('availability.updated', c.id); return project(c)
+    const avatarUrl = typeof body.avatarUrl === 'string' ? body.avatarUrl.trim() : c.avatarUrl || ''
+    if (avatarUrl && (!/^https:\/\//i.test(avatarUrl) || avatarUrl.length > 2048)) fail('头像请使用 HTTPS 图片地址', 400)
+    const certifications = actor.role === 'admin' && Array.isArray(body.certifications) ? body.certifications.map(value => String(value).trim().slice(0, 100)).filter(Boolean).slice(0, 10) : c.certifications || []
+    Object.assign(c, { status: body.status, dailyLimit: body.dailyLimit, freeConsultEnabled: Boolean(body.freeConsultEnabled), acceptingNewClients: body.status === 'available', slots, categories, phone, intro, avatarUrl, certifications }); audit('availability.updated', c.id); return project(c)
   }
   const assign = route.match(/^\/api\/consultations\/bookings\/([^/]+)\/assign$/)
   const assignOne = (b, c) => {

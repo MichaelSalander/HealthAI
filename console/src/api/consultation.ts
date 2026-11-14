@@ -16,6 +16,7 @@ async function request<T>(path: string, method = 'GET', data?: unknown): Promise
 export const consultationAdminApi = {
   async login() { const token = getToken(); if (!token?.accessToken) throw new Error('请先登录管理后台'); session = { token: token.accessToken, id: 'admin-001', role: 'admin', name: token.nickname || '管理员' } },
   directory: () => request<ConsultationConsultant[]>('/consultation-directory'),
+  createConsultant: (name: string) => request<ConsultationConsultant>('/consultation-directory', 'POST', { name }),
   queue: () => request<{ bookings: ConsultationRequest[]; presence: ConsultationPresence[] }>('/consultations/queue'),
   requestQueue: () => request<{ requests: ConsultationRequestV2[]; presence: ConsultationPresence[] }>('/consultation-requests/queue'),
   clients: () => request<ConsultantClient[]>('/consultant/clients'),

@@ -3,7 +3,6 @@ import Cookies from "js-cookie";
 import { getConfig } from "@/config";
 import NProgress from "@/utils/progress";
 import { transformI18n } from "@/plugins/i18n";
-import { buildHierarchyTree } from "@/utils/tree";
 import remainingRouter from "./modules/remaining";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
@@ -21,9 +20,7 @@ import {
   isOneOfArray,
   getHistoryMode,
   findRouteByPath,
-  handleAliveRoute,
-  formatTwoStageRoutes,
-  formatFlatteningRoutes
+  handleAliveRoute
 } from "./utils";
 import {
   type Router,
@@ -57,16 +54,19 @@ Object.keys(modules).forEach(key => {
 });
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
-export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
-  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
-);
+// HealthAI modules are already valid two-level Vue Router records. Running the
+// template's parentId-based hierarchy converter removes these routes because
+// they intentionally do not use the template's parentId metadata.
+export const constantRoutes: Array<RouteRecordRaw> = ascending(
+  routes.flat(Infinity)
+) as Array<RouteRecordRaw>;
 
 /** 初始的静态路由，用于退出登录时重置路由 */
 const initConstantRoutes: Array<RouteRecordRaw> = cloneDeep(constantRoutes);
 
 /** 用于渲染菜单，保持原始层级 */
 export const constantMenus: Array<RouteComponent> = ascending(
-  routes.flat(Infinity)
+  cloneDeep(routes.flat(Infinity))
 ).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
@@ -108,9 +108,7 @@ export function resetRouter() {
   for (const route of initConstantRoutes.concat(...(remainingRouter as any))) {
     router.addRoute(route);
   }
-  router.options.routes = formatTwoStageRoutes(
-    formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
-  );
+  router.options.routes = cloneDeep(constantRoutes);
   usePermissionStoreHook().clearAllCachePage();
   resetLoadedPaths();
 }
@@ -176,10 +174,8 @@ router.beforeEach((to: ToRouteType, _from) => {
         initRouter().then((router: Router) => {
           if (!useMultiTagsStoreHook().getMultiTagsCache) {
             const { path } = to;
-            const route = findRouteByPath(
-              path,
-              router.options.routes[0].children
-            );
+            const root = router.options.routes.find(item => item.path === "/");
+            const route = findRouteByPath(path, root?.children || [...router.options.routes]);
             getTopMenu(true);
             // query、params模式路由传参数的标签页不在此处处理
             if (route && route.meta?.title) {

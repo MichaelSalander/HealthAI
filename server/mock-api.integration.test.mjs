@@ -19,7 +19,8 @@ before(async () => {
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
       PORT: String(port),
-      HEALTHAI_DB: 'json',
+      HEALTHAI_DB: 'sqlite',
+      HEALTHAI_DB_FILE: path.join(tempRoot, 'health.sqlite'),
       HEALTHAI_DATA_FILE: path.join(tempRoot, 'state.json'),
       HEALTHAI_UPLOAD_DIR: path.join(tempRoot, 'uploads'),
       HEALTHAI_SESSION_SECRET: 'integration-test-secret',
@@ -251,3 +252,30 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(connectedVoice.response.status, 200)
   assert.equal(connectedVoice.body.data.status, 'connected')
 })
+
+ test('manual data and weight target persist with distinct trend points and account isolation', async () => {
+  const registration = await api('/api/v1/auth/customer-register', { method: 'POST', body: JSON.stringify({ email: 'records@example.test', password: 'records-test-2026' }) })
+  const session = registration.body.data
+  const headers = auth(session)
+  await api('/api/v1/health/consents', { method: 'POST', headers, body: JSON.stringify({ consentType: 'health_data', version: 'v1', status: 'granted' }) })
+  for (const [value, measuredAt] of [['65', '2026-01-01'], ['62.5', '2026-02-02'], ['64', '2026-02-02']]) {
+    const saved = await api('/api/v1/health/observations', { method: 'POST', headers, body: JSON.stringify({ code: 'weight', name: '体重', value, unit: 'kg', reference: '', status: '正常', measuredAt }) })
+    assert.equal(saved.response.status, 201)
+  }
+  assert.equal((await api('/api/v1/health/observations', { method: 'POST', headers, body: JSON.stringify({ code: 'weight', value: 'abc' }) })).response.status, 400)
+  await api('/api/v1/health/observations', { method: 'POST', headers, body: JSON.stringify({ code: 'blood-pressure', value: '120/80', unit: 'mmHg' }) })
+  const bp = (await api('/api/v1/health/trends?code=blood-pressure', { headers })).body.data
+  assert.equal(bp[0].value, 120); assert.equal(bp[0].secondaryValue, 80)
+  await api('/api/v1/health/profile', { method: 'PUT', headers, body: JSON.stringify({ targetWeightKg: '60' }) })
+  const loggedIn = (await api('/api/v1/auth/customer-login', { method: 'POST', body: JSON.stringify({ username: 'records@example.test', password: 'records-test-2026' }) })).body.data
+  assert.equal((await api('/api/v1/health/profile', { headers: auth(loggedIn) })).body.data.targetWeightKg, '60')
+  const points = (await api('/api/v1/health/trends?code=weight', { headers: auth(loggedIn) })).body.data
+  assert.deepEqual(points.map(p => p.value), [65, 62.5, 64]); assert.equal(new Set(points.map(p => p.id)).size, 3)
+  const other = (await api('/api/v1/auth/customer-login', { method: 'POST', body: JSON.stringify({ username: 'dual-login@example.com', password: 'test-password-482' }) })).body.data
+  assert.deepEqual((await api('/api/v1/health/trends?code=weight', { headers: auth(other) })).body.data, [])
+  const { openSqliteStore } = await import('./storage/sqlite-store.mjs')
+  const disk = await openSqliteStore({ dbFile: path.join(tempRoot, 'health.sqlite'), seedFile: path.join(tempRoot, 'state.json') })
+  assert.equal(disk.load().profiles[session.id].targetWeightKg, '60')
+  assert.equal(disk.load().observations[session.id].length, 4)
+  disk.close()
+ })

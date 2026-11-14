@@ -19,7 +19,6 @@ import LoginQrCode from "./components/LoginQrCode.vue";
 import { useUserStoreHook } from "@/store/modules/user";
 import { initRouter, getTopMenu } from "@/router/utils";
 import { bg, avatar, illustration } from "./utils/static";
-import { ReImageVerify } from "@/components/ReImageVerify";
 import { ref, toRaw, reactive, watch, computed } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
@@ -32,13 +31,11 @@ import Lock from "~icons/ri/lock-fill";
 import Check from "~icons/ep/check";
 import User from "~icons/ri/user-3-fill";
 import Info from "~icons/ri/information-line";
-import Keyhole from "~icons/ri/shield-keyhole-line";
 
 defineOptions({
   name: "Login"
 });
 
-const imgCode = ref("");
 const loginDay = ref(7);
 const router = useRouter();
 const loading = ref(false);
@@ -59,8 +56,7 @@ const { locale, translationCh, translationEn } = useTranslationLang();
 
 const ruleForm = reactive({
   username: "admin",
-  password: "admin123",
-  verifyCode: ""
+  password: import.meta.env.DEV ? "admin123" : ""
 });
 
 const onLogin = async (formEl: FormInstance | undefined) => {
@@ -77,12 +73,13 @@ const onLogin = async (formEl: FormInstance | undefined) => {
           // 获取后端路由
           await initRouter();
           disabled.value = true;
-          router.push(getTopMenu(true).path).then(() => {
+          getTopMenu(true);
+          router.push("/healthai/overview").then(() => {
             message(t("login.pureLoginSuccess"), { type: "success" });
           });
         })
-        .catch(_err => {
-          message(t("login.pureLoginFail"), { type: "error" });
+        .catch(error => {
+          message(error instanceof Error ? error.message : String(error || t("login.pureLoginFail")), { type: "error" });
         })
         .finally(() => {
           disabled.value = false;
@@ -107,9 +104,6 @@ useEventListener(document, "keydown", ({ code }) => {
     immediateDebounce(ruleFormRef.value);
 });
 
-watch(imgCode, value => {
-  useUserStoreHook().SET_VERIFYCODE(value);
-});
 watch(checked, bool => {
   useUserStoreHook().SET_ISREMEMBERED(bool);
 });
@@ -214,21 +208,6 @@ watch(loginDay, value => {
                   :placeholder="t('login.purePassword')"
                   :prefix-icon="useRenderIcon(Lock)"
                 />
-              </el-form-item>
-            </Motion>
-
-            <Motion :delay="200">
-              <el-form-item prop="verifyCode">
-                <el-input
-                  v-model="ruleForm.verifyCode"
-                  clearable
-                  :placeholder="t('login.pureVerifyCode')"
-                  :prefix-icon="useRenderIcon(Keyhole)"
-                >
-                  <template v-slot:append>
-                    <ReImageVerify v-model:code="imgCode" />
-                  </template>
-                </el-input>
               </el-form-item>
             </Motion>
 
@@ -337,13 +316,7 @@ watch(loginDay, value => {
       class="w-full flex-c absolute bottom-3 text-sm text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]"
     >
       Copyright © 2020-present
-      <a
-        class="hover:text-primary!"
-        href="https://github.com/pure-admin"
-        target="_blank"
-      >
-        &nbsp;{{ title }}
-      </a>
+      <span>&nbsp;{{ title }}</span>
     </div>
   </div>
 </template>

@@ -18,7 +18,7 @@ async function submit() {
   if (busy.value || loading.value) return
   busy.value = true
   try {
-    const item = current.value || await api.createRequest('immediate_text')
+    const item = current.value || await api.createRequest('immediate_text', undefined, selectedId.value || undefined)
     if (item.consultantId) {
       const opened = await api.openRequest(item.id)
       uni.navigateTo({ url: `/pages/consultation/index?conversationId=${opened.room.id}` })

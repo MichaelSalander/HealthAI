@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'; import AppCard from '../../components/AppCard.vue'; import { healthRepository } from '../../services/api/repositories'; import type { HealthTrend } from '../../types/domain'; import { uniApi as uni } from '../../services/platform/uni'
-const trends = ref<HealthTrend[]>([]); const range = ref('3个月'); const ranges = ['1个月', '3个月', '6个月', '1年']; onMounted(async () => { trends.value = await healthRepository.getTrends('weight') })
+import { ref } from 'vue'
+import AppCard from '../../components/AppCard.vue'
+import HealthTrendChart from '../../components/HealthTrendChart.vue'
+const months = ref(3)
+const ranges = [{ label: '1个月', value: 1 }, { label: '3个月', value: 3 }, { label: '6个月', value: 6 }, { label: '1年', value: 12 }]
 </script>
-<template><view class="page"><view class="topbar"><text class="back" @click="uni.navigateBack()">‹</text><text class="top-title">历史趋势</text><text @click="uni.navigateTo({ url: '/pages/result/index' })">♧</text></view><view class="tabs"><text v-for="item in ranges" :key="item" :class="{ active: range === item }" @click="range = item">{{ item }}</text></view><AppCard v-if="trends.length"><text class="chart-title">体重趋势 · {{ range }}</text><view class="chart"><view v-for="item in trends" :key="item.label" class="bar" :style="{height:`${Math.max(40,item.value*2.4)}rpx`}"></view></view><view class="labels"><text v-for="item in trends" :key="item.label">{{ item.label }}</text></view></AppCard><AppCard v-else><text class="empty">暂无趋势数据</text><text class="muted">上传报告并确认指标，或完成手动记录后，这里会显示历史变化。</text><button class="btn" @click="uni.navigateTo({ url: '/pages/report/index' })">上传体检报告</button></AppCard></view></template>
-<style scoped>.topbar,.tabs,.labels{display:flex;align-items:center;justify-content:space-between}.topbar{height:82rpx}.back{font-size:48rpx}.top-title{font-size:36rpx;font-weight:700}.tabs{padding:18rpx 8rpx;color:#8B8179}.active{padding:12rpx 22rpx;border-radius:18rpx;color:#D96B2B;background:#FFF0E5}.chart{height:380rpx;display:flex;align-items:flex-end;gap:22rpx;padding:20rpx;border-bottom:1rpx solid #F0DED1}.bar{flex:1;max-width:90rpx;border-radius:18rpx 18rpx 0 0;background:linear-gradient(#D96B2B,#F2BE9B)}.labels{padding:15rpx 24rpx;color:#8B8179;font-size:21rpx}.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin-top:16rpx}.metric{display:block;margin-top:14rpx;font-size:34rpx;font-weight:800}.metric small{font-size:20rpx}.ok{display:block;margin-top:8rpx;color:#D96B2B;font-size:21rpx}</style>
-
-
+<template><view class="page"><view class="ranges"><button v-for="item in ranges" :key="item.value" :class="{ active: months === item.value }" @click="months = item.value">{{ item.label }}</button></view><AppCard><HealthTrendChart :months="months" /></AppCard></view></template>
+<style scoped>.ranges{display:flex;gap:12rpx;margin-bottom:24rpx}.ranges button{font-size:24rpx;padding:10rpx 16rpx;line-height:1.6;background:#fff7f0;color:#786b63}.ranges .active{background:#d96b2b;color:white}</style>

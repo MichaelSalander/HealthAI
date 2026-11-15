@@ -124,3 +124,20 @@ test('manual and automatic assignment immediately open rooms and respect capacit
   f.call('consultation-requests/auto-assign', 'POST', {}, f.admin)
   assert.ok(queued.conversationId)
 })
+
+test('consultant client list merges booking and request records and includes latest metric change and one room', () => {
+  const f = fixture()
+  f.state.profiles = {}; f.state.reports = {}; f.state.observations = {}
+  const request = f.call('consultation-requests', 'POST', { requestId: 'client-list-1', mode: 'immediate_text' })
+  f.state.workflow.consultationRequests.push({ ...request, id: 'duplicate-request', requestId: 'client-list-duplicate' })
+  f.state.workflow.bookings.push({ id: 'legacy-booking', userId: f.customer.id, userName: f.customer.name, consultantId: f.c.id, consultantName: f.c.name, status: 'accepted', createdAt: new Date().toISOString() })
+  f.state.observations = { [f.customer.id]: [
+    { id: 'weight-new', code: 'weight', name: '体重', value: '62.5', unit: 'kg', status: '正常', measuredAt: '2026-11-15T10:00:00.000Z' },
+    { id: 'weight-old', code: 'weight', name: '体重', value: '63.3', unit: 'kg', status: '正常', measuredAt: '2026-11-01T10:00:00.000Z' }
+  ] }
+  const clients = f.call('consultant/clients', 'GET', {}, { id: f.c.id, role: 'consultant' })
+  assert.equal(clients.length, 1)
+  assert.equal(clients[0].conversationId, request.conversationId)
+  assert.equal(clients[0].recentMetrics[0].value, '62.5')
+  assert.equal(clients[0].recentMetrics[0].previousValue, '63.3')
+})

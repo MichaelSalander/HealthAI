@@ -1,5 +1,5 @@
 import { uniApi as uni } from '../platform/uni'
-import type { ConsultationConsultant, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, ConsultationRoom, ConsultationMessage, VoiceSession, ServiceRecord, ConsultationMode, DemoRole, DemoSession, HealthTimelineEvent } from '../../types/consultation'
+import type { ConsultationConsultant, ConsultantClient, ConsultationNotice, ConsultationPresence, ConsultationRequest, ConsultationRequestV2, ConsultationRoom, ConsultationMessage, VoiceSession, ServiceRecord, ConsultationMode, DemoRole, DemoSession, HealthTimelineEvent } from '../../types/consultation'
 import type { AIHealthReport, ConsentRecord, HealthCheckCenter, HealthProfile, HealthReport, Observation, Order, ReportExtraction, ServicePlan } from '../../types/domain'
 
 const configuredBase = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
@@ -120,6 +120,7 @@ export const consultationRepository = {
   async transition(id: string, action: 'accept' | 'complete' | 'cancel', session?: DemoSession) { return request<ConsultationRequest>(`/consultations/bookings/${id}/${action}`, 'POST', {}, session || await this.customer()) },
   async notices(session?: DemoSession) { return request<ConsultationNotice[]>('/consultation-notifications', 'GET', undefined, session || await this.customer()) },
   async clientHealth(userId: string, session: DemoSession) { return request<{ profile: HealthProfile | null; reports: HealthReport[]; observations: Observation[]; timeline: HealthTimelineEvent[]; aiReport: AIHealthReport | null }>(`/consultant/clients/${encodeURIComponent(userId)}/health`, 'GET', undefined, session) },
+  async consultantClients(session: DemoSession) { return request<ConsultantClient[]>('/consultant/clients', 'GET', undefined, session) },
   async orders(session?: DemoSession) { return request<Order[]>('/orders', 'GET', undefined, session || await this.customer()) },
   async createOrder(plan: ServicePlan, session?: DemoSession) { return request<Order>('/orders', 'POST', { planId: plan.id }, session || await this.customer()) },
   async mockPay(orderId: string, session?: DemoSession) { return request<Order>(`/orders/${orderId}/mock-pay`, 'POST', {}, session || await this.customer()) },
@@ -133,6 +134,7 @@ export const consultationRepository = {
   async createRequest(mode: ConsultationMode, requestId = `consult-${Date.now()}`, consultantId?: string) { return request<ConsultationRequestV2>('/consultation-requests', 'POST', { mode, serviceType: 'free_consult', requestId, consultantId }, await this.customer()) },
   async consultationRequests(session?: DemoSession) { return request<ConsultationRequestV2[]>('/consultation-requests', 'GET', undefined, session || await this.customer()) },
   async acceptRequest(id: string, session: DemoSession) { return request<{ request: ConsultationRequestV2; room: ConsultationRoom }>(`/consultation-requests/${id}/accept`, 'POST', {}, session) },
+  async openConsultantRequest(id: string, session: DemoSession) { return request<{ request: ConsultationRequestV2; room: ConsultationRoom }>(`/consultation-requests/${encodeURIComponent(id)}/open`, 'POST', {}, session) },
   async openRequest(id: string) { return request<{ request: ConsultationRequestV2; room: ConsultationRoom }>(`/consultation-requests/${id}/open`, 'POST', {}, await this.customer()) },
   async rooms(session?: DemoSession) { return request<ConsultationRoom[]>('/conversations', 'GET', undefined, session || await this.customer()) },
   async room(id: string, session?: DemoSession) { return request<ConsultationRoom>(`/conversations/${id}`, 'GET', undefined, session || await this.customer()) },

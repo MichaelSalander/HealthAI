@@ -3,15 +3,16 @@ import { computed, ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import AppCard from '../../components/AppCard.vue'
 import ConsultantBottomNav from '../../components/ConsultantBottomNav.vue'
-import ConsultationBookingCard from '../../components/ConsultationBookingCard.vue'
 import { consultationRepository as api } from '../../services/api/consultation'
-import type { ConsultationConsultant, ConsultationNotice, ConsultationRequest, ConsultationRequestV2, DemoSession } from '../../types/consultation'
+import ConsultationBookingCard from '../../components/ConsultationBookingCard.vue'
+import type { ConsultationConsultant, ConsultantClient, ConsultationNotice, ConsultationRequest, ConsultationRequestV2, DemoSession } from '../../types/consultation'
 import { uniApi as uni } from '../../services/platform/uni'
 
 const session = ref<DemoSession>()
 const consultant = ref<ConsultationConsultant>()
 const bookings = ref<ConsultationRequest[]>([])
 const requests = ref<ConsultationRequestV2[]>([])
+const clients = ref<ConsultantClient[]>([])
 const notices = ref<ConsultationNotice[]>([])
 const error = ref('')
 const saving = ref(false)
@@ -19,8 +20,21 @@ const initializing = ref(true)
 let timer: ReturnType<typeof setInterval> | undefined
 let knownNoticeIds = new Set<string>()
 let noticesLoaded = false
-const pendingCount = computed(() => requests.value.filter(item => item.status === 'assigned').length + bookings.value.filter(item => item.status === 'assigned').length)
-const activeCount = computed(() => requests.value.filter(item => item.status === 'in_progress').length + bookings.value.filter(item => item.status === 'accepted').length)
+const assignedRequests = computed(() => requests.value.filter(item => item.status === 'assigned'))
+const inProgressUserIds = computed(() => new Set([...requests.value.filter(item => ['in_progress', 'waiting_consultant', 'waiting_customer'].includes(item.status)).map(item => item.userId), ...bookings.value.filter(item => item.status === 'accepted').map(item => item.userId)]))
+const uniquePendingRequests = computed(() => {
+  const byUser = new Map<string, ConsultationRequestV2>()
+  for (const item of assignedRequests.value) if (!inProgressUserIds.value.has(item.userId) && !byUser.has(item.userId)) byUser.set(item.userId, item)
+  return [...byUser.values()]
+})
+const uniquePendingBookings = computed(() => {
+  const requestUsers = new Set(requests.value.filter(item => ['assigned', 'in_progress', 'waiting_consultant', 'waiting_customer'].includes(item.status)).map(item => item.userId))
+  const byUser = new Map<string, ConsultationRequest>()
+  for (const item of bookings.value) if (item.status === 'assigned' && !requestUsers.has(item.userId) && !byUser.has(item.userId)) byUser.set(item.userId, item)
+  return [...byUser.values()]
+})
+const pendingCount = computed(() => uniquePendingRequests.value.length + uniquePendingBookings.value.length)
+const activeCount = computed(() => clients.value.filter(item => item.status === '服务中').length)
 const unreadCount = computed(() => notices.value.filter(item => !item.read).length)
 
 async function load() {
@@ -33,8 +47,8 @@ async function load() {
       }
       session.value = await api.login('consultant')
     }
-    const [directory, items, consultationItems, notifications] = await Promise.all([api.directory(), api.bookings(session.value), api.consultationRequests(session.value), api.notices(session.value)])
-    consultant.value = directory.find(item => item.id === session.value?.id); bookings.value = items; requests.value = consultationItems; notices.value = notifications
+    const [directory, items, consultationItems, clientItems, notifications] = await Promise.all([api.directory(), api.bookings(session.value), api.consultationRequests(session.value), api.consultantClients(session.value), api.notices(session.value)])
+    consultant.value = directory.find(item => item.id === session.value?.id); bookings.value = items; requests.value = consultationItems; clients.value = clientItems; notices.value = notifications
     if (noticesLoaded && notifications.some(item => !item.read && !knownNoticeIds.has(item.id))) uni.showToast({ title: '有新的客户配对通知' })
     knownNoticeIds = new Set(notifications.map(item => item.id)); noticesLoaded = true; error.value = ''
   } catch (e) { error.value = (e as Error).message } finally { initializing.value = false }
@@ -52,9 +66,11 @@ async function acceptRequest(item: ConsultationRequestV2) { if (!session.value) 
     <AppCard v-if="error" class="error-card"><text class="danger">{{ error }}</text><button class="retry" @click="load">重新连接</button></AppCard><text v-if="initializing" class="muted loading">正在同步工作台…</text>
     <view class="summary-grid"><view class="summary-card primary"><text class="summary-number">{{ pendingCount }}</text><text class="summary-label">待确认咨询</text><text class="summary-hint">需要及时回应</text></view><view class="summary-card"><text class="summary-number">{{ activeCount }}</text><text class="summary-label">进行中</text><text class="summary-hint">今天的服务</text></view></view>
     <view class="section-head"><text class="section-title">待办咨询</text><text class="section-link" @click="uni.reLaunch({ url: '/pages/consultant/clients' })">查看全部 ›</text></view>
-    <AppCard v-for="item in requests" :key="item.id" class="request-card"><view class="request-head"><view><text class="request-title">{{ item.userName }}</text><text class="muted">{{ item.status === 'assigned' ? '平台已为你配对，请及时响应' : item.status === 'in_progress' ? '咨询进行中' : '等待平台处理' }}</text></view><text class="request-tag" :class="item.status">{{ item.status === 'assigned' ? '待确认' : item.status === 'in_progress' ? '进行中' : item.status }}</text></view><button v-if="item.status === 'assigned'" class="action-btn" :disabled="saving || consultant?.status === 'offline'" @click="acceptRequest(item)">进入咨询房间</button><button v-if="item.status === 'in_progress' && item.conversationId" class="action-btn" @click="uni.navigateTo({ url: `/pages/consultant/room?conversationId=${item.conversationId}&consultantId=${session?.id}` })">继续咨询</button></AppCard>
-    <AppCard v-if="!bookings.length" class="empty-card"><text class="empty-icon">✓</text><text class="empty-title">暂时没有待办</text><text class="muted">公司分配新的客户后会在这里提醒你</text></AppCard>
-    <ConsultationBookingCard v-for="booking in bookings" :key="booking.id" :booking="booking" class="booking-card"><button v-if="booking.status === 'assigned'" class="action-btn" :disabled="saving || consultant?.status === 'offline'" @click="act(() => api.transition(booking.id, 'accept', session))">接受咨询</button><button v-if="booking.status === 'accepted'" class="action-btn" :disabled="saving" @click="act(() => api.transition(booking.id, 'complete', session))">完成本次咨询</button><button v-if="booking.status === 'completed'" class="ghost-btn" @click="uni.navigateTo({ url: '/pages/consultation/index' })">查看服务记录</button></ConsultationBookingCard>
+    <AppCard v-for="item in uniquePendingRequests" :key="item.userId" class="request-card"><view class="request-head"><view><text class="request-title">{{ item.userName }}</text><text class="muted">平台已为你配对，请及时回应</text></view><text class="request-tag">待回应</text></view><button class="action-btn" :disabled="saving || consultant?.status === 'offline'" @click="acceptRequest(item)">进入聊天室</button></AppCard>
+    <ConsultationBookingCard v-for="booking in uniquePendingBookings" :key="booking.userId" :booking="booking" class="booking-card"><button class="action-btn" :disabled="saving || consultant?.status === 'offline'" @click="act(() => api.transition(booking.id, 'accept', session))">接受咨询</button></ConsultationBookingCard>
+    <AppCard v-if="!pendingCount" class="empty-card"><text class="empty-icon">✓</text><text class="empty-title">暂时没有待办</text><text class="muted">新客户配对后会在这里提醒你</text></AppCard>
+    <view class="section-head"><text class="section-title">服务中的客户</text><text class="section-link" @click="uni.reLaunch({ url: '/pages/consultant/clients' })">查看全部 {{ activeCount }} 位 ›</text></view>
+    <AppCard v-for="client in clients.filter(item => item.status === '服务中').slice(0, 3)" :key="`active-${client.id}`" class="request-card"><view class="request-head"><view><text class="request-title">{{ client.name }}</text><text class="muted">{{ client.observationCount }} 项健康指标 · {{ client.reportCount }} 份报告</text></view><text class="request-tag in_progress">服务中</text></view><button v-if="client.conversationId" class="action-btn" @click="uni.navigateTo({ url: `/pages/consultant/room?conversationId=${client.conversationId}&consultantId=${session?.id}` })">继续聊天室</button><button v-else class="action-btn" @click="uni.reLaunch({ url: '/pages/consultant/clients' })">查看客户资料</button></AppCard>
     <view class="section-head"><text class="section-title">我的服务状态</text><text class="company-mark">平台统一安排</text></view>
     <AppCard class="status-card"><view class="status-row"><view class="status-dot" :class="consultant?.status" /><view class="status-copy"><text class="status-name">{{ consultant?.status === 'offline' ? '暂时离线' : '在线接待中' }}</text><text class="muted">{{ consultant?.status === 'offline' ? '上线后才能接受新咨询' : '有客户配对时会立即通知你' }}</text></view><text class="status-tag">{{ consultant?.status === 'full' ? '今日已满' : consultant?.status === 'offline' ? '离线' : '可接待' }}</text></view><view class="company-note"><text class="note-icon">i</text><text>咨询时段和客户由平台统一分配，你只需要保持在线并及时回应。</text></view></AppCard>
     <view class="section-head"><text class="section-title">最新提醒</text><text class="section-link" @click="uni.reLaunch({ url: '/pages/consultants/notices' })">全部通知 ›</text></view>

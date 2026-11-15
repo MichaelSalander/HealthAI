@@ -60,10 +60,22 @@ export function handleWorkflow({ state, route, method, body, actor, query, now =
   }
   if (route === '/api/consultant/clients' && method === 'GET') {
     requireRole('consultant', 'admin')
-    const assignedIds = new Set([...db.bookings.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId), ...db.consultationRequests.filter(item => actor.role === 'admin' || item.consultantId === actor.id).map(item => item.userId)])
+    const assignedIds = new Set([...db.bookings.filter(item => (actor.role === 'admin' || item.consultantId === actor.id) && !['cancelled'].includes(item.status)).map(item => item.userId), ...db.consultationRequests.filter(item => (actor.role === 'admin' || item.consultantId === actor.id) && !['cancelled', 'expired'].includes(item.status)).map(item => item.userId)])
     return [...assignedIds].map(userId => {
       const profile = state.profiles[userId] || {}; const requests = db.consultationRequests.filter(item => item.userId === userId); const bookings = db.bookings.filter(item => item.userId === userId)
-      return { id: userId, name: requests[0]?.userName || bookings[0]?.userName || userId, profile, observationCount: (state.observations[userId] || []).length, reportCount: (state.reports[userId] || []).length, lastActivityAt: [...requests, ...bookings].map(item => item.createdAt).sort().pop() || null, status: requests.some(item => ['assigned', 'waiting_consultant', 'in_progress'].includes(item.status)) || bookings.some(item => ['assigned', 'accepted'].includes(item.status)) ? '服务中' : '待跟进' }
+      const rooms = db.conversations.filter(room => room.userId === userId && room.status !== 'completed' && (actor.role === 'admin' || room.consultantId === actor.id)).sort((a, b) => Date.parse(b.lastMessageAt || b.startedAt || '') - Date.parse(a.lastMessageAt || a.startedAt || ''))
+      const observations = (state.observations[userId] || []).slice().sort((a, b) => Date.parse(b.measuredAt || '') - Date.parse(a.measuredAt || ''))
+      const latestByMetric = new Map()
+      for (const item of observations) {
+        const previous = latestByMetric.get(item.code || item.name)
+        if (!previous) latestByMetric.set(item.code || item.name, { ...item, previousValue: null })
+        else if (previous.previousValue === null) previous.previousValue = item.value
+      }
+      const assignedRequests = requests.filter(item => actor.role === 'admin' || item.consultantId === actor.id)
+      const assignedBookings = bookings.filter(item => actor.role === 'admin' || item.consultantId === actor.id)
+      const activity = [...assignedRequests, ...assignedBookings].map(item => item.createdAt).sort().pop() || null
+      const activeRequest = assignedRequests.filter(item => ['assigned', 'waiting_consultant', 'in_progress'].includes(item.status)).sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0]
+      return { id: userId, name: requests.find(item => actor.role === 'admin' || item.consultantId === actor.id)?.userName || bookings.find(item => actor.role === 'admin' || item.consultantId === actor.id)?.userName || profile.name || userId, profile, observationCount: observations.length, reportCount: (state.reports[userId] || []).length, lastActivityAt: activity, status: rooms.length || activeRequest || bookings.some(item => (actor.role === 'admin' || item.consultantId === actor.id) && ['assigned', 'accepted'].includes(item.status)) ? '服务中' : '待跟进', conversationId: rooms[0]?.id || null, requestId: activeRequest?.id || null, recentMetrics: [...latestByMetric.values()].slice(0, 3).map(item => ({ code: item.code, name: item.name, value: item.value, unit: item.unit, status: item.status, measuredAt: item.measuredAt, previousValue: item.previousValue })) }
     })
   }
   const clientHealth = route.match(/^\/api\/consultant\/clients\/([^/]+)\/health$/)

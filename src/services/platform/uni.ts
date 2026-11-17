@@ -1,6 +1,7 @@
 type NavigateOptions = { url: string }
 type ToastOptions = { title: string }
 type ModalOptions = { title: string; content: string; showCancel?: boolean }
+type PreviewImageOptions = { current: string; urls: string[] }
 type RequestOptions = {
   url: string
   method?: string
@@ -18,6 +19,7 @@ type UniRuntime = {
   navigateBack?: () => unknown
   showToast?: (options: ToastOptions) => unknown
   showModal?: (options: ModalOptions) => unknown
+  previewImage?: (options: PreviewImageOptions) => unknown
   getStorageSync?: (key: string) => unknown
   setStorageSync?: (key: string, value: string) => unknown
   [key: string]: unknown
@@ -82,6 +84,10 @@ export const uniApi = {
     const nativeShowModal = runtime.showModal
     if (nativeShowModal) return nativeShowModal.call(runtime, options)
     if (typeof window !== 'undefined') window.alert(`${options.title}\n\n${options.content}`)
+  },
+  previewImage(options: PreviewImageOptions) {
+    const nativePreviewImage = runtime.previewImage
+    if (nativePreviewImage) return nativePreviewImage.call(runtime, options)
   },
   getStorageSync(key: string) {
     return runtime.getStorageSync?.call(runtime, key)

@@ -46,7 +46,7 @@ const assignedConsultant = computed(() => {
   } as Consultant
 })
 async function loadHome() {
-  store.ensureUser()
+  await store.ensureUser()
   const [homeEntries, people, content] = await Promise.all([contentRepository.listHomeEntries(), consultantRepository.list(), contentRepository.listContentSettings()])
   entries.value = homeEntries
   consultants.value = people

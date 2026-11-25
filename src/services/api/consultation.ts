@@ -11,6 +11,21 @@ let customerSession: DemoSession | undefined
 const customerSessionKey = 'healthai_customer_session'
 let consultantSession: DemoSession | undefined
 const consultantSessionKey = 'healthai_consultant_session'
+const activeRoleKey = 'healthai_active_role'
+type ActiveRole = 'customer' | 'consultant'
+function setActiveRole(role: ActiveRole): void {
+  try {
+    uni.setStorageSync(activeRoleKey, role)
+    uni.setStorageSync(role === 'customer' ? consultantSessionKey : customerSessionKey, '')
+  } catch { /* 某些预览环境没有 Storage */ }
+  if (role === 'customer') consultantSession = undefined
+  else customerSession = undefined
+}
+export function getActiveRole(): ActiveRole | undefined {
+  const role = String(uni.getStorageSync(activeRoleKey) || '')
+  return role === 'customer' || role === 'consultant' ? role : undefined
+}
+export function claimRole(role: ActiveRole): void { setActiveRole(role) }
 function readCustomerSession(): DemoSession | undefined {
   try {
     const value = uni.getStorageSync(customerSessionKey)
@@ -19,25 +34,29 @@ function readCustomerSession(): DemoSession | undefined {
   } catch { return undefined }
 }
 function persistCustomerSession(session: DemoSession): DemoSession {
+  if (session.role !== 'customer' || !session.token || !session.id) throw new Error('会员登录资料无效，请重新登录')
+  setActiveRole('customer')
   customerSession = session
   try { uni.setStorageSync(customerSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
   return session
 }
 function clearCustomerSession(): void {
   customerSession = undefined
-  try { uni.setStorageSync(customerSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
+  try { uni.setStorageSync(customerSessionKey, ''); if (getActiveRole() === 'customer') uni.setStorageSync(activeRoleKey, '') } catch { /* 某些预览环境没有 Storage */ }
 }
 function readConsultantSession(): DemoSession | undefined {
   try { const value = uni.getStorageSync(consultantSessionKey); const session = value ? JSON.parse(String(value)) as DemoSession : undefined; return session?.role === 'consultant' && session.token ? session : undefined } catch { return undefined }
 }
 function persistConsultantSession(session: DemoSession): DemoSession {
+  if (session.role !== 'consultant' || !session.token || !session.id) throw new Error('健管师登录资料无效，请重新登录')
+  setActiveRole('consultant')
   consultantSession = session
   try { uni.setStorageSync(consultantSessionKey, JSON.stringify(session)) } catch { /* 某些预览环境没有 Storage */ }
   return session
 }
 function clearConsultantSession(): void {
   consultantSession = undefined
-  try { uni.setStorageSync(consultantSessionKey, '') } catch { /* 某些预览环境没有 Storage */ }
+  try { uni.setStorageSync(consultantSessionKey, ''); if (getActiveRole() === 'consultant') uni.setStorageSync(activeRoleKey, '') } catch { /* 某些预览环境没有 Storage */ }
 }
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession, timeout = 10000): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -98,7 +117,15 @@ export const consultationRepository = {
     })
   },
   wechatLogin(code: string, role: DemoRole = 'customer') { return request<DemoSession>('/auth/wechat-login', 'POST', { code, role }) },
-  async customer(): Promise<DemoSession> { return customerSession = readCustomerSession() || await this.login('customer') },
+  async customer(): Promise<DemoSession> {
+    const role = getActiveRole()
+    if (role === 'consultant') throw new Error('当前登录的是健管师账号，请切换至会员账号后继续')
+    const saved = readCustomerSession()
+    if (!role && saved) claimRole('customer')
+    if (saved) return customerSession = saved
+    customerSession = undefined
+    return this.login('customer')
+  },
   async useCustomer(id: string) {
     if (!isDemoMode) throw new Error('正式环境不支持切换演示客户')
     return persistCustomerSession(await this.login('customer', id))

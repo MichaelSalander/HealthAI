@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useHealthStore } from './stores/health'
 import { uniApi as uni } from './services/platform/uni'
+import { claimRole, getActiveRole } from './services/api/consultation'
 
 function currentRoute() {
   const hashPath = typeof window !== 'undefined' ? window.location.hash.split('?')[0] : ''
@@ -38,8 +39,12 @@ function guardRoute() {
     return
   }
   const key = isConsultant ? 'healthai_consultant_session' : 'healthai_customer_session'
+  const expectedRole = isConsultant ? 'consultant' : 'customer'
   let valid = false
-  try { const saved = JSON.parse(String(uni.getStorageSync(key) || 'null')); valid = Boolean(saved?.token && saved.role === (isConsultant ? 'consultant' : 'customer')) } catch { /* Invalid session is treated as logged out. */ }
+  try { const saved = JSON.parse(String(uni.getStorageSync(key) || 'null')); valid = Boolean(saved?.token && saved.role === expectedRole) } catch { /* Invalid session is treated as logged out. */ }
+  const activeRole = getActiveRole()
+  if (valid && !activeRole) claimRole(expectedRole)
+  else if (valid && activeRole !== expectedRole) valid = false
   if (!valid) uni.reLaunch({ url: isConsultant ? '/pages/consultant/login' : '/pages/login/index' })
   else if (!isConsultant) useHealthStore().ensureUser()
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { consultationRepository } from '../../services/api/consultation'
+import { consultationRepository, getActiveRole } from '../../services/api/consultation'
 import PasswordField from '../../components/PasswordField.vue'
 import { uniApi as uni } from '../../services/platform/uni'
 
@@ -19,7 +19,7 @@ const showWechatLogin = false
 onLoad(() => {
   try {
     const session = JSON.parse(String(uni.getStorageSync('healthai_customer_session') || 'null'))
-    if (session?.token && session.role === 'customer') uni.reLaunch({ url: '/pages/home/index' })
+    if (session?.token && session.role === 'customer' && getActiveRole() !== 'consultant') uni.reLaunch({ url: '/pages/home/index' })
   } catch { /* Invalid saved session must not create a redirect loop. */ }
 })
 

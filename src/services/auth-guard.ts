@@ -1,5 +1,6 @@
 /** Page lifecycle guard shared by H5 and mini-program pages. */
 import { uniApi as uni } from './platform/uni'
+import { getActiveRole } from './api/consultation'
 export function guardPage() {
   const pages = getCurrentPages()
   if (!pages.length) return
@@ -8,5 +9,6 @@ export function guardPage() {
   const role = route.startsWith('/pages/consultant/') || route === '/pages/consultants/notices' ? 'consultant' : 'customer'
   let valid = false
   try { const session = JSON.parse(String(uni.getStorageSync(`healthai_${role}_session`) || 'null')); valid = Boolean(session?.token && session.role === role) } catch { /* No valid session. */ }
+  if (getActiveRole() && getActiveRole() !== role) valid = false
   if (!valid) uni.reLaunch({ url: role === 'consultant' ? '/pages/consultant/login' : '/pages/login/index' })
 }

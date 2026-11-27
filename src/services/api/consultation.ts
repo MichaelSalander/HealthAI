@@ -60,9 +60,12 @@ function clearConsultantSession(): void {
 }
 function request<T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: unknown, session?: DemoSession, timeout = 10000): Promise<T> {
   return new Promise((resolve, reject) => {
+    const isCurrentSession = () => !session || (session.role === 'customer' ? readCustomerSession() : readConsultantSession())?.token === session.token
+    if (!isCurrentSession()) { reject(new Error('登录状态已变更，请重新打开当前页面')); return }
     uni.request({ url: `${base}${path}`, method, data: data as Record<string, unknown>, timeout,
       header: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.token}` } : {}) },
       success: response => {
+        if (!isCurrentSession()) { reject(new Error('登录状态已变更，已忽略旧账号响应')); return }
         const payload = response.data as { data: T; message?: string }
         if (response.statusCode >= 200 && response.statusCode < 300) resolve(payload.data)
         else {

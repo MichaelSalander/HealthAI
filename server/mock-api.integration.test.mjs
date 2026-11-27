@@ -279,3 +279,30 @@ test('HTTP API completes customer, admin and consultant consultation flow', asyn
   assert.equal(disk.load().observations[session.id].length, 4)
   disk.close()
  })
+
+test('parallel real member sessions ignore cookies and deny cross-role resources', async () => {
+  const members = await Promise.all(['a', 'b'].map(async suffix => {
+    const result = await api('/api/v1/auth/customer-register', { method: 'POST', body: JSON.stringify({ email: `parallel-${suffix}@example.com`, password: 'isolation-password', name: `Member ${suffix}` }) })
+    assert.equal(result.response.status, 201)
+    return result.body.data
+  }))
+  await Promise.all(members.map(async (member, i) => {
+    const consent = await api('/api/v1/health/consents', { method: 'POST', headers: auth(member), body: JSON.stringify({ consentType: 'health_data', version: 'v1', status: 'granted' }) })
+    assert.equal(consent.response.status, 201)
+    const result = await api('/api/v1/health/profile', { method: 'PUT', headers: auth(member), body: JSON.stringify({ heightCm: String(160 + i), medicalHistory: `private-${i}` }) })
+    assert.equal(result.response.status, 200)
+  }))
+  const coach = await login('consultant', 'c-103')
+  for (let repeat = 0; repeat < 3; repeat++) {
+    await Promise.all(members.map(async (member, i) => {
+      const response = await api('/api/v1/health/profile', { headers: { ...auth(member), Cookie: `session=${members[1-i].token}` } })
+      assert.equal(response.response.status, 200)
+      assert.equal(response.body.data.medicalHistory, `private-${i}`)
+      assert.equal((await api('/api/v1/admin/users', { headers: auth(member) })).response.status, 403)
+      assert.equal((await api('/api/v1/consultant/clients', { headers: auth(member) })).response.status, 403)
+      assert.equal((await api(`/api/v1/consultant/clients/${member.id}/health`, { headers: auth(coach) })).response.status, 403)
+    }))
+  }
+  assert.equal((await api('/api/v1/health/profile', { headers: auth(coach) })).response.status, 403)
+  assert.equal((await api('/api/v1/health/profile', { headers: { Cookie: `session=${members[0].token}` } })).response.status, 401)
+})

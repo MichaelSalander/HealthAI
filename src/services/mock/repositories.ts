@@ -42,8 +42,15 @@ async function apiRequest<T>(path: string, fallback: T, init?: RequestInit, sess
   }
 }
 async function apiRequestRequired<T>(path: string, init?: RequestInit, session?: DemoSession): Promise<T> {
+  const assertCurrentSession = () => {
+    if (!session) return
+    const saved = JSON.parse(String(uni.getStorageSync(`healthai_${session.role}_session`) || 'null')) as DemoSession | null
+    if (saved?.token !== session.token) throw new Error('登录状态已变更，请重新打开当前页面')
+  }
+  assertCurrentSession()
   const response = await fetch(`${apiBase}${path}`, { headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.token}` } : {}) }, ...init })
   const body = await response.json() as { data?: T; message?: string }
+  assertCurrentSession()
   if (!response.ok) throw new Error(body.message || '服务请求失败，请稍后重试')
   return body.data as T
 }

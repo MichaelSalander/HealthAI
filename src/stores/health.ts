@@ -11,6 +11,7 @@ export function useHealthStore() { return { state, async ensureUser() {
     if (!session.token || session.role !== 'customer' || uni.getStorageSync('healthai_active_role') === 'consultant') { state.user = null; return null }
     if (state.user?.id !== session.id) state.user = null
     const currentUser = await authProvider.login()
+    if (uni.getStorageSync('healthai_customer_session') !== rawSession) return null
     if (currentUser.id !== session.id) { state.user = null; return null }
     state.user = currentUser
     return currentUser

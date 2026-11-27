@@ -90,9 +90,18 @@ export const uniApi = {
     if (nativePreviewImage) return nativePreviewImage.call(runtime, options)
   },
   getStorageSync(key: string) {
+    // H5 authentication belongs to this tab. Never import a shared legacy token:
+    // it is impossible to tell which account the person intended to use here.
+    if (typeof window !== 'undefined' && /^healthai_(customer_session|consultant_session|active_role)$/.test(key)) {
+      return window.sessionStorage.getItem(key) || undefined
+    }
     return runtime.getStorageSync?.call(runtime, key)
   },
   setStorageSync(key: string, value: string) {
+    if (typeof window !== 'undefined' && /^healthai_(customer_session|consultant_session|active_role)$/.test(key)) {
+      window.sessionStorage.setItem(key, value)
+      return
+    }
     return runtime.setStorageSync?.call(runtime, key, value)
   }
 }

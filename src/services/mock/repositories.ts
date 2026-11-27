@@ -3,6 +3,7 @@ import type { AIRepository, AuthProvider, CommerceRepository, ConsultantReposito
 import type { Consultant, HealthProfile, HealthReport, Observation, ReportExtraction, ServicePlan } from '../../types/domain'
 import type { DemoSession } from '../../types/consultation'
 import { consultationRepository } from '../api/consultation'
+import { uniApi as uni } from '../platform/uni'
 
 type StorageKey = 'healthai_profile_v2' | 'healthai_reports_v2' | 'healthai_observations_v2' | 'healthai_orders_v2'
 const apiBase = (() => {
@@ -17,7 +18,7 @@ const hasConfiguredApi = Boolean((import.meta as any).env?.VITE_API_BASE_URL) ||
 function readStorage<T>(key: StorageKey, fallback: T): T {
   try {
     const value = uni.getStorageSync(key)
-    return value ? JSON.parse(value) as T : fallback
+    return value ? JSON.parse(String(value)) as T : fallback
   } catch {
     return fallback
   }

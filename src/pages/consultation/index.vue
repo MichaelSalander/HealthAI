@@ -6,7 +6,13 @@ import { consultationRepository as api } from '../../services/api/consultation'
 import type { DemoSession } from '../../types/consultation'
 import { uniApi as uni } from '../../services/platform/uni'
 const roomId = ref(''); const session = ref<DemoSession>()
-onLoad(async options => { roomId.value = options?.conversationId || ''; session.value = await api.customer() })
+onLoad(async options => {
+  try {
+    session.value = await api.customer()
+    roomId.value = options?.conversationId || ''
+    if (!roomId.value) uni.redirectTo({ url: '/pages/consultants/booking' })
+  } catch { uni.reLaunch({ url: '/pages/login/index' }) }
+})
 // 聊天室是長期服務入口；離開不代表結束諮詢，回首頁後仍可從「我的主責健康管理師」重新進入。
 function backToHome() { uni.reLaunch({ url: '/pages/home/index' }) }
 </script>

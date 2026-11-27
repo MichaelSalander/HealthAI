@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import vm from 'node:vm'
 import { build } from 'esbuild'
 
-const compiled = await build({ entryPoints: ['src/services/api/consultation.ts'], bundle: true, write: false, format: 'iife', globalName: 'auth', platform: 'browser', define: { 'import.meta.env': '{}' } })
+const compiled = await build({ stdin: { contents: "export { consultationRepository } from './src/services/api/consultation'; export { healthRepository } from './src/services/mock/repositories'", resolveDir: process.cwd(), loader: 'ts' }, bundle: true, write: false, format: 'iife', globalName: 'auth', platform: 'browser', define: { 'import.meta.env': '{}' } })
 const code = compiled.outputFiles[0].text
 const storage = () => { const values = new Map(); return { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,String(v)) } }
 function tab(shared, saved = storage()) {
@@ -12,7 +12,7 @@ function tab(shared, saved = storage()) {
   context.globalThis = context
   context.uni = { request: options => pending.push(options), reLaunch: options => redirects.push(options.url), getStorageSync: k => shared.getItem(k), setStorageSync: (k,v) => shared.setItem(k,v) }
   vm.runInContext(code, context)
-  return { api: context.auth.consultationRepository, pending, redirects, saved }
+  return { api: context.auth.consultationRepository, health: context.auth.healthRepository, context, pending, redirects, saved }
 }
 const session = (id, role = 'customer') => ({ id, role, name: id, token: `token-${id}` })
 async function login(t, s) {
@@ -49,4 +49,23 @@ test('old success and 401 responses cannot replace or log out a new identity', a
   await Promise.all(rejected)
   assert.equal((await t.api.customer()).id, 'bob')
   assert.equal(t.redirects.length, 0)
+})
+
+test('health repository uses tab session, not the native shared storage token', async () => {
+  const shared = storage(), t = tab(shared)
+  shared.setItem('healthai_customer_session', JSON.stringify(session('legacy')))
+  await login(t, session('alice'))
+  t.context.fetch = async (_url, init) => {
+    assert.equal(init.headers.Authorization, 'Bearer token-alice')
+    return { ok: true, json: async () => ({ data: [] }) }
+  }
+  assert.equal((await t.health.listReports()).length, 0)
+  let finish
+  t.context.fetch = () => new Promise(resolve => { finish = resolve })
+  const old = t.health.listReports()
+  await Promise.resolve(); await Promise.resolve()
+  await login(t, session('bob'))
+  const rejected = assert.rejects(old, /登录状态已变更/)
+  finish({ ok: true, json: async () => ({ data: [{ id: 'alice-private-report' }] }) })
+  await rejected
 })

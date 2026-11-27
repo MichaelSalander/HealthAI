@@ -2,12 +2,12 @@
 import { onMounted, ref } from 'vue'
 import PrimaryButton from '../../components/PrimaryButton.vue'
 import { healthRepository } from '../../services/api/repositories'
+import { uniApi } from '../../services/platform/uni'
 import type { ConsentRecord } from '../../types/domain'
 
 const records = ref<ConsentRecord[]>([])
 const saving = ref(false)
 const message = ref('')
-const uniApi = (globalThis as any).uni
 const load = async () => { records.value = await healthRepository.listConsents() }
 const granted = () => records.value.some(item => item.consentType === 'health_data' && item.status === 'granted')
 const save = async (status: 'granted' | 'revoked') => {

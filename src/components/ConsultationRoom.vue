@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
+import { healthRepository } from '../services/api/repositories'
 import { consultationRepository as api } from '../services/api/consultation'
 import type { ConsultationMessage, ConsultationRoom as Room, DemoSession } from '../types/consultation'
 import type { AIHealthReport, Observation } from '../types/domain'
@@ -43,7 +44,7 @@ const roomBannerTitle = computed(() => isConsultant.value ? '客户咨询' : '�
 const roomBannerSubtitle = computed(() => isConsultant.value ? '查看客户资料并跟进服务' : '健康管理服务')
 const healthDrawerTitle = computed(() => isConsultant.value ? '客户健康摘要' : '我的健康摘要')
 
-async function load() { try { const [roomData, result] = await Promise.all([api.room(props.roomId, props.session), api.messages(props.roomId, props.session)]); room.value = roomData; messages.value = result.items; if (isConsultant.value) { const health = await api.clientHealth(roomData.userId, props.session); healthObservations.value = health.observations; aiReport.value = health.aiReport } if (messages.value.length) await api.readRoom(props.roomId, messages.value[messages.value.length - 1].id, props.session); error.value = '' } catch (e) { error.value = /无权|权限|不存在/.test((e as Error).message) ? '该咨询房间已结束、失效，或当前账号没有查看权限。请从咨询列表进入有效的咨询。' : (e as Error).message } finally { loading.value = false } }
+async function load() { try { const [roomData, result] = await Promise.all([api.room(props.roomId, props.session), api.messages(props.roomId, props.session)]); room.value = roomData; messages.value = result.items; if (isConsultant.value) { const health = await api.clientHealth(roomData.userId, props.session); healthObservations.value = health.observations; aiReport.value = health.aiReport } else { healthObservations.value = await healthRepository.getObservations() } if (messages.value.length) await api.readRoom(props.roomId, messages.value[messages.value.length - 1].id, props.session); error.value = '' } catch (e) { error.value = /无权|权限|不存在/.test((e as Error).message) ? '该咨询房间已结束、失效，或当前账号没有查看权限。请从咨询列表进入有效的咨询。' : (e as Error).message } finally { loading.value = false } }
 async function send() { const text = draft.value.trim(); if (!text || sending.value || room.value?.status === 'completed') return; sending.value = true; try { await api.sendMessage(props.roomId, text, props.session); draft.value = ''; await load() } catch (e) { error.value = (e as Error).message } finally { sending.value = false } }
 async function complete() { if (!isConsultant.value || !room.value) return; try { await api.completeRoom(room.value.id, '本次咨询已完成，建议继续记录健康数据并按计划复查。', props.session); await load(); emit('completed') } catch (e) { error.value = (e as Error).message } }
 function stop() { if (timer) clearInterval(timer); timer = undefined }
